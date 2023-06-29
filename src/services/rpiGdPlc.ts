@@ -10,8 +10,8 @@ import {
     available
 } from 'node-libgpiod';
 import { SerialPort } from 'serialport';
-import { ResponseParser } from './responseParser';
-import { DeferredPromise } from '../utils';
+import { TFLunaResponseParser } from './tflunaResponseParser';
+import { DeferredPromise, sleep } from '../utils';
 
 const ModuleName = 'RpiGdPlc';
 
@@ -51,7 +51,11 @@ export class RpiGdPlc {
                 return;
             }
 
-            await this.getTFLunaMeasurement();
+            await sleep(3000);
+
+            setInterval(async () => {
+                await this.getTFLunaMeasurement();
+            }, 2000);
         }
         catch (ex) {
             this.app.log([ModuleName, 'error'], `Error during startup: ${ex.message}`);
@@ -66,65 +70,11 @@ export class RpiGdPlc {
         this.app.log([ModuleName, 'info'], `port open`);
     }
 
-    private parserData(data: Buffer): void {
-        if (data.length >= 2) {
-            if (data.readUInt8(0) === 0x5A) {
-                const header = data.toString('hex', 0, 1).toUpperCase();
-                const length = data.readUInt8(1);
-                const commandId = data.toString('hex', 2, 3).toUpperCase();
-                const checksum = data.toString('hex', data.length - 1).toUpperCase();
+    private portParserData(data: any): void {
+        this.app.log([ModuleName, 'info'], `TFParse Response`);
+        this.app.log([ModuleName, 'info'], JSON.stringify(data, null, 4));
 
-                switch (commandId) {
-                    case '06': // set baud rate
-                        this.parseSetBaudRateResponse(header, length, commandId, checksum, data);
-                        break;
-
-                    case '03': // set sample frequency
-                        this.parseSetSampleFrequencyResponse(header, length, commandId, checksum, data);
-                        break;
-
-                    case '14': // get version
-                        this.parseGetVersionResponse(header, length, commandId, checksum, data);
-                        break;
-
-                    default:
-                        this.app.log([ModuleName, 'warning'], `Unknown response data returned, id=${commandId}`)
-                        break;
-                }
-
-                this.waitOnWrite.resolve();
-            }
-            else if (data.readUInt8(0) === 0x59 && data.readUInt8(1) === 0x59) {
-                this.parseTriggerResponse(data);
-            }
-        }
-        else {
-            this.app.log([ModuleName, 'warning'], `Parser data less than 2 bytes...`);
-        }
-    }
-
-    private parseSetBaudRateResponse(header: string, length: number, commandId: string, checksum: string, data: Buffer): void {
-        this.app.log([ModuleName, 'info'], `Set baud rate response:`);
-
-        const baudRate = ((data.readUInt8(6) << 24) + (data.readUInt8(5) << 16)) + ((data.readUInt8(4) << 8) + (data.readUInt8(3)));
-        this.app.log([ModuleName, 'info'], `hdr: 0x${header}, len: ${length}, cmd: 0x${commandId}, chk: ${checksum}, baud: ${baudRate}`);
-    }
-
-    private parseSetSampleFrequencyResponse(header: string, length: number, commandId: string, checksum: string, data: Buffer): void {
-        this.app.log([ModuleName, 'info'], `Set sample frequency response:`);
-
-        this.app.log([ModuleName, 'info'], `hdr: 0x${header}, len: ${length}, cmd: 0x${commandId}, chk: ${checksum}, freq: ${data.readUInt16BE(3)}`);
-    }
-
-    private parseGetVersionResponse(header: string, length: number, commandId: string, checksum: string, data: Buffer): void {
-        this.app.log([ModuleName, 'info'], `Get version response:`);
-
-        const version = `${data.toString('utf8', 21, 23)}.${data.toString('utf8', 24, 26)}.${data.toString('utf8', 27, 29)}`;
-        this.app.log([ModuleName, 'info'], `hdr: 0x${header}, len: ${length}, cmd: 0x${commandId}, chk: ${checksum}, vers: ${version}`);
-    }
-
-    private parseTriggerResponse(data: Buffer): void {
-        this.app.log([ModuleName, 'info'], `Trigger response:`);
+        this.waitOnWrite.resolve();
     }
 
     private async openPort(device: string, baudRate: number): Promise<SerialPort> {
@@ -139,8 +89,14 @@ export class RpiGdPlc {
         port.on('error', this.portError.bind(this));
         port.on('open', this.portOpen.bind(this));
 
-        const parser = port.pipe(new ResponseParser({ header: 0x5A }));
-        parser.on('data', this.parserData.bind(this));
+        const tfLunaParser = new TFLunaResponseParser({
+            app: this.app,
+            infoHeader: Buffer.from([0x5A]),
+            measureHeader: Buffer.from([0x59, 0x59]),
+            objectMode: true
+        });
+        const portParser = port.pipe(tfLunaParser);
+        portParser.on('data', this.portParserData.bind(this));
 
         return new Promise((resolve, reject) => {
             port.open((err) => {
