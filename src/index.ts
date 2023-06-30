@@ -3,6 +3,7 @@ import { IAppConfig } from './models/carportTypes';
 import { RpiGdPlc } from './services/rpiGdPlc';
 
 const app: IAppConfig = {
+    sampleFrequencyMs: 1000,
     log: (tags: any, message: any) => {
         const tagsMessage = (tags && Array.isArray(tags)) ? `[${tags.join(', ')}]` : '[]';
 
