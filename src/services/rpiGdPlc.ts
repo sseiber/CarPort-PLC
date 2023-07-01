@@ -1,9 +1,17 @@
 import {
     IAppConfig,
+    TFLunaGetVersionPrefix,
+    TFLunaSetBaudRatePrefix,
+    TFLunaSetSampleRatePrefix,
+    TFLunaMeasurementPrefix,
+    TFLunaGetVersionCommand,
+    TFLunaSetBaudRateCommand,
+    TFLunaSetSampleRateCommand,
     ITFLunaBaudResponse,
     ITFLunaSampleRateResponse,
+    ITFLunaVersionResponse,
     ITFLunaMeasureResponse,
-    ITFLunaVersionResponse
+    TFLunaMeasurementCommand
 } from '../models/carportTypes';
 import {
     version,
@@ -15,7 +23,7 @@ import {
 } from 'node-libgpiod';
 import { SerialPort } from 'serialport';
 import { TFLunaResponseParser } from './tfLunaResponseParser';
-import { DeferredPromise, sleep } from '../utils';
+import { sleep } from '../utils';
 
 const ModuleName = 'RpiGdPlc';
 
@@ -25,13 +33,18 @@ export class RpiGdPlc {
     private bcm2835: Chip;
     private port: SerialPort;
     private tfLunaResponseParser: TFLunaResponseParser;
-    private writePromiseId: number;
-    private mapWritePromises: Map<number, DeferredPromise>;
+    private tfLunaCurrentBaudRate: number;
+    private tfLunaCurrentSampleRate: number;
+    private tfLunaCurrentVersion: string;
+    private tfLunaCurrentMeasurement: number;
 
     constructor(app: IAppConfig) {
         this.app = app;
-        this.writePromiseId = 0;
-        this.mapWritePromises = new Map<number, DeferredPromise>();
+
+        this.tfLunaCurrentBaudRate = 0;
+        this.tfLunaCurrentSampleRate = 0;
+        this.tfLunaCurrentVersion = '';
+        this.tfLunaCurrentMeasurement = 0;
     }
 
     public async init(): Promise<void> {
@@ -40,14 +53,12 @@ export class RpiGdPlc {
         try {
             this.port = await this.openPort('/dev/serial1', 115200);
 
-            const baudRateResponse = await this.setTFLunaBaudRate(115200);
-            this.app.log([ModuleName, 'info'], JSON.stringify(baudRateResponse, null, 4));
+            await this.setTFLunaBaudRate(this.app.baudRate);
 
-            const sampleRateResponse = await this.setTFLunaSampleRate(0);
-            this.app.log([ModuleName, 'info'], JSON.stringify(sampleRateResponse, null, 4));
+            // start with sampleRate === 0 to turn off sampling
+            await this.setTFLunaSampleRate(0);
 
-            const versionResponse = await this.getTFLunaVersion();
-            this.app.log([ModuleName, 'info'], JSON.stringify(versionResponse, null, 4));
+            await this.getTFLunaVersion();
         }
         catch (ex) {
             this.app.log([ModuleName, 'error'], `Error during init: ${ex.message}`);
@@ -63,11 +74,10 @@ export class RpiGdPlc {
                 return;
             }
 
-            await sleep(3000);
+            await sleep(1000);
 
             setInterval(async () => {
-                const measurement = await this.getTFLunaMeasurement();
-                this.app.log([ModuleName, 'info'], JSON.stringify(measurement, null, 4));
+                await this.getTFLunaMeasurement();
             }, 2000);
         }
         catch (ex) {
@@ -87,6 +97,44 @@ export class RpiGdPlc {
         this.app.log([ModuleName, 'info'], `port closed`);
     }
 
+    private tfLunaResponseParserHandler(data: any): void {
+        const commandId = data?.commandId;
+        if (commandId) {
+            switch (commandId) {
+                case TFLunaSetBaudRateCommand:
+                    this.tfLunaCurrentBaudRate = (data as ITFLunaBaudResponse).baudRate;
+
+                    this.app.log([ModuleName, 'info'], `Current baudRate: ${this.tfLunaCurrentBaudRate}`);
+                    break;
+
+                case TFLunaSetSampleRateCommand:
+                    this.tfLunaCurrentSampleRate = (data as ITFLunaSampleRateResponse).sampleRate;
+
+                    this.app.log([ModuleName, 'info'], `Current sampleRate: ${this.tfLunaCurrentSampleRate}`);
+                    break;
+
+                case TFLunaGetVersionCommand:
+                    this.tfLunaCurrentVersion = (data as ITFLunaVersionResponse).version;
+
+                    this.app.log([ModuleName, 'info'], `Current version: ${this.tfLunaCurrentVersion}`);
+                    break;
+
+                case TFLunaMeasurementCommand:
+                    this.tfLunaCurrentMeasurement = (data as ITFLunaMeasureResponse).distCm;
+
+                    this.app.log([ModuleName, 'info'], `Current distance: ${this.tfLunaCurrentMeasurement}`);
+                    break;
+
+                default:
+                    this.app.log([ModuleName, 'debug'], `Unknown response command: ${commandId}`)
+                    break;
+            }
+        }
+        else {
+            this.app.log([ModuleName, 'error'], `Received unknown response data...`);
+        }
+    }
+
     private async openPort(device: string, baudRate: number): Promise<SerialPort> {
         const port = new SerialPort({
             path: device,
@@ -102,10 +150,9 @@ export class RpiGdPlc {
 
         this.tfLunaResponseParser = port.pipe(new TFLunaResponseParser({
             app: this.app,
-            infoHeader: Buffer.from([0x5A]),
-            measureHeader: Buffer.from([0x59, 0x59]),
             objectMode: true
         }));
+        this.tfLunaResponseParser.on('data', this.tfLunaResponseParserHandler.bind(this));
 
         return new Promise((resolve, reject) => {
             port.open((err) => {
@@ -118,7 +165,7 @@ export class RpiGdPlc {
         });
     }
 
-    private async setTFLunaBaudRate(baudRate: number = 115200): Promise<ITFLunaBaudResponse> {
+    private async setTFLunaBaudRate(baudRate: number = 115200): Promise<void> {
         this.app.log([ModuleName, 'info'], `Set baud rate request: ${baudRate}`);
 
         const data1 = (baudRate & 0xFF);
@@ -126,44 +173,27 @@ export class RpiGdPlc {
         const data3 = (baudRate & 0x00FF0000) >> 16;
         const data4 = (baudRate & 0xFF000000) >> 24;
 
-        return this.writeTFLunaCommand(Buffer.from([0x5A, 0x08, 0x06, data1, data2, data3, data4, 0x00]));
+        await this.writeTFLunaCommand(Buffer.from(TFLunaSetBaudRatePrefix.concat([data1, data2, data3, data4, 0x00])));
     }
 
-    private async setTFLunaSampleRate(sampleRate: number): Promise<ITFLunaSampleRateResponse> {
+    private async setTFLunaSampleRate(sampleRate: number): Promise<void> {
         this.app.log([ModuleName, 'info'], `Set sample frequency request: ${sampleRate}`);
 
-        return this.writeTFLunaCommand(Buffer.from([0x5A, 0x06, 0x03, sampleRate, 0x00, 0x00]));
+        await this.writeTFLunaCommand(Buffer.from(TFLunaSetSampleRatePrefix.concat([sampleRate, 0x00, 0x00])));
     }
 
-    private async getTFLunaVersion(): Promise<ITFLunaVersionResponse> {
+    private async getTFLunaVersion(): Promise<void> {
         this.app.log([ModuleName, 'info'], `Get version request`);
 
-        return this.writeTFLunaCommand(Buffer.from([0x5A, 0x04, 0x14, 0x00]));
+        await this.writeTFLunaCommand(Buffer.from(TFLunaGetVersionPrefix.concat([0x00])));
     }
 
-    private async getTFLunaMeasurement(): Promise<ITFLunaMeasureResponse> {
-        return this.writeTFLunaCommand(Buffer.from([0x5A, 0x04, 0x04, 0x00]));
+    private async getTFLunaMeasurement(): Promise<void> {
+        await this.writeTFLunaCommand(Buffer.from(TFLunaMeasurementPrefix.concat([0x00])));
     }
 
-    private async writeTFLunaCommand(writeData: Buffer): Promise<any> {
+    private async writeTFLunaCommand(writeData: Buffer): Promise<void> {
         return new Promise(async (resolve, reject) => {
-            const writePromiseId = ++this.writePromiseId;
-            const writePromise = new DeferredPromise();
-            this.mapWritePromises.set(writePromiseId, writePromise);
-
-            setTimeout(() => {
-                return writePromise.reject(new Error('Timeout while waiting for TFLuna response'))
-            }, 2000);
-
-            this.tfLunaResponseParser.once('data', (responseData: any) => {
-                // TODO: Why can't this just be "writePromise" above??
-                const resolvedWritePromise = this.mapWritePromises.get(writePromiseId);
-
-                if (resolvedWritePromise) {
-                    return resolvedWritePromise.resolve(responseData);
-                }
-            });
-
             this.port.write(writeData, async (writeError) => {
                 if (writeError) {
                     this.app.log([ModuleName, 'error'], `Serial port write error: ${writeError.message}`);
@@ -178,16 +208,7 @@ export class RpiGdPlc {
                         return reject(drainError);
                     }
 
-                    let parsedResponseData: any = {};
-
-                    try {
-                        parsedResponseData = await writePromise.promise
-                    }
-                    catch (ex) {
-                        this.app.log([ModuleName, 'error'], `TFLuna response error: ${ex.message}`);
-                    }
-
-                    return resolve(parsedResponseData);
+                    return resolve();
                 });
             });
         });

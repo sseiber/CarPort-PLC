@@ -2,13 +2,21 @@ import { forget } from './utils';
 import { IAppConfig } from './models/carportTypes';
 import { RpiGdPlc } from './services/rpiGdPlc';
 
+const LogLevels = ['info', 'warning', 'error', 'debug'];
+
 const app: IAppConfig = {
-    sampleFrequencyMs: 1000,
+    baudRate: 115200,
+    sampleRate: 1000,
     log: (tags: any, message: any) => {
         const tagsMessage = (tags && Array.isArray(tags)) ? `[${tags.join(', ')}]` : '[]';
 
-        // eslint-disable-next-line no-console
-        console.log(`[${new Date().toTimeString()}] [${tagsMessage}] ${message}`);
+        const logTag = tags?.[1] || '';
+        const levelIndex = LogLevels.findIndex((level) => level === logTag);
+
+        if (levelIndex <= 2) {
+            // eslint-disable-next-line no-console
+            console.log(`[${new Date().toTimeString()}] [${tagsMessage}] ${message}`);
+        }
     }
 };
 
