@@ -1,12 +1,18 @@
 import {
     IAppConfig,
-    TFLunaGetVersionPrefix,
-    TFLunaSetBaudRatePrefix,
-    TFLunaSetSampleRatePrefix,
-    TFLunaMeasurementPrefix,
-    TFLunaGetVersionCommand,
+    TFLunaRestoreDefaultSettingsCommand,
+    TFLunaRestoreDefaultSettingsPrefix,
+    TFLunaSaveCurrentSettingsCommand,
+    TFLunaSaveCurrentSettingsPrefix,
     TFLunaSetBaudRateCommand,
+    TFLunaSetBaudRatePrefix,
     TFLunaSetSampleRateCommand,
+    TFLunaSetSampleRatePrefix,
+    TFLunaGetVersionCommand,
+    TFLunaGetVersionPrefix,
+    TFLunaMeasurementPrefix,
+    ITFLunaRestoreDefaultSettingsResponse,
+    ITFLunaSaveCurrentSettingsResponse,
     ITFLunaBaudResponse,
     ITFLunaSampleRateResponse,
     ITFLunaVersionResponse,
@@ -33,6 +39,8 @@ export class RpiGdPlc {
     private bcm2835: Chip;
     private port: SerialPort;
     private tfLunaResponseParser: TFLunaResponseParser;
+    private tfRestoreDefaultSettingsStatus: number;
+    private tfSaveCurrentSettingsStatus: number;
     private tfLunaCurrentBaudRate: number;
     private tfLunaCurrentSampleRate: number;
     private tfLunaCurrentVersion: string;
@@ -41,6 +49,8 @@ export class RpiGdPlc {
     constructor(app: IAppConfig) {
         this.app = app;
 
+        this.tfRestoreDefaultSettingsStatus = 0;
+        this.tfSaveCurrentSettingsStatus = 0;
         this.tfLunaCurrentBaudRate = 0;
         this.tfLunaCurrentSampleRate = 0;
         this.tfLunaCurrentVersion = '';
@@ -51,12 +61,16 @@ export class RpiGdPlc {
         this.app.log([ModuleName, 'info'], `Initialzation`);
 
         try {
-            this.port = await this.openPort('/dev/serial1', 115200);
+            this.port = await this.openPort('/dev/ttyAMA2', 115200);
 
-            await this.setTFLunaBaudRate(this.app.baudRate);
+            await this.restoreTFLunaSettings();
+
+            // await this.setTFLunaBaudRate(this.app.baudRate);
 
             // start with sampleRate === 0 to turn off sampling
             await this.setTFLunaSampleRate(0);
+
+            await this.saveTFLunaSettings();
 
             await this.getTFLunaVersion();
         }
@@ -78,7 +92,7 @@ export class RpiGdPlc {
 
             setInterval(async () => {
                 await this.getTFLunaMeasurement();
-            }, 2000);
+            }, 2500);
         }
         catch (ex) {
             this.app.log([ModuleName, 'error'], `Error during startup: ${ex.message}`);
@@ -101,6 +115,18 @@ export class RpiGdPlc {
         const commandId = data?.commandId;
         if (commandId) {
             switch (commandId) {
+                case TFLunaRestoreDefaultSettingsCommand:
+                    this.tfRestoreDefaultSettingsStatus = (data as ITFLunaRestoreDefaultSettingsResponse).status;
+
+                    this.app.log([ModuleName, 'info'], `Restore default settings response status: ${this.tfRestoreDefaultSettingsStatus}`);
+                    break;
+
+                case TFLunaSaveCurrentSettingsCommand:
+                    this.tfSaveCurrentSettingsStatus = (data as ITFLunaSaveCurrentSettingsResponse).status;
+
+                    this.app.log([ModuleName, 'info'], `Save current settings response status: ${this.tfSaveCurrentSettingsStatus}`);
+                    break;
+
                 case TFLunaSetBaudRateCommand:
                     this.tfLunaCurrentBaudRate = (data as ITFLunaBaudResponse).baudRate;
 
@@ -110,19 +136,19 @@ export class RpiGdPlc {
                 case TFLunaSetSampleRateCommand:
                     this.tfLunaCurrentSampleRate = (data as ITFLunaSampleRateResponse).sampleRate;
 
-                    this.app.log([ModuleName, 'info'], `Current sampleRate: ${this.tfLunaCurrentSampleRate}`);
+                    this.app.log([ModuleName, 'info'], `Set sample rate response: ${this.tfLunaCurrentSampleRate}`);
                     break;
 
                 case TFLunaGetVersionCommand:
                     this.tfLunaCurrentVersion = (data as ITFLunaVersionResponse).version;
 
-                    this.app.log([ModuleName, 'info'], `Current version: ${this.tfLunaCurrentVersion}`);
+                    this.app.log([ModuleName, 'info'], `Get current version response: ${this.tfLunaCurrentVersion}`);
                     break;
 
                 case TFLunaMeasurementCommand:
                     this.tfLunaCurrentMeasurement = (data as ITFLunaMeasureResponse).distCm;
 
-                    this.app.log([ModuleName, 'info'], `Current distance: ${this.tfLunaCurrentMeasurement}`);
+                    this.app.log([ModuleName, 'info'], `Get measurement response: ${this.tfLunaCurrentMeasurement}`);
                     break;
 
                 default:
@@ -165,8 +191,21 @@ export class RpiGdPlc {
         });
     }
 
+    private async restoreTFLunaSettings(): Promise<void> {
+        this.app.log([ModuleName, 'info'], `Restore default settings`);
+
+        await this.writeTFLunaCommand(Buffer.from(TFLunaRestoreDefaultSettingsPrefix.concat([0x00])));
+    }
+
+    private async saveTFLunaSettings(): Promise<void> {
+        this.app.log([ModuleName, 'info'], `Save current settings settings`);
+
+        await this.writeTFLunaCommand(Buffer.from(TFLunaSaveCurrentSettingsPrefix.concat([0x00])));
+    }
+
+    // @ts-ignore
     private async setTFLunaBaudRate(baudRate: number = 115200): Promise<void> {
-        this.app.log([ModuleName, 'info'], `Set baud rate request: ${baudRate}`);
+        this.app.log([ModuleName, 'info'], `Set baud rate request with value: ${baudRate}`);
 
         const data1 = (baudRate & 0xFF);
         const data2 = (baudRate & 0xFF00) >> 8;
@@ -177,7 +216,7 @@ export class RpiGdPlc {
     }
 
     private async setTFLunaSampleRate(sampleRate: number): Promise<void> {
-        this.app.log([ModuleName, 'info'], `Set sample frequency request: ${sampleRate}`);
+        this.app.log([ModuleName, 'info'], `Set sample rate request with value: ${sampleRate}`);
 
         await this.writeTFLunaCommand(Buffer.from(TFLunaSetSampleRatePrefix.concat([sampleRate, 0x00, 0x00])));
     }
@@ -207,6 +246,8 @@ export class RpiGdPlc {
 
                         return reject(drainError);
                     }
+
+                    await sleep(1000);
 
                     return resolve();
                 });

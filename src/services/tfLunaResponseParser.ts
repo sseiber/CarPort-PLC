@@ -7,14 +7,18 @@ import {
     IAppConfig,
     TFLunaCommandHeader,
     TFLunaMeasureHeader,
+    TFLunaRestoreDefaultSettingsCommand,
+    TFLunaSaveCurrentSettingsCommand,
+    TFLunaSetBaudRateCommand,
+    TFLunaSetSampleRateCommand,
+    TFLunaGetVersionCommand,
+    TFLunaMeasurementCommand,
+    ITFLunaRestoreDefaultSettingsResponse,
+    ITFLunaSaveCurrentSettingsResponse,
     ITFLunaBaudResponse,
     ITFLunaSampleRateResponse,
     ITFLunaMeasureResponse,
     ITFLunaVersionResponse,
-    TFLunaSetBaudRateCommand,
-    TFLunaSetSampleRateCommand,
-    TFLunaGetVersionCommand,
-    TFLunaMeasurementCommand
 } from '../models/carportTypes';
 
 const ModuleName = 'TFLunaResponseParser';
@@ -52,6 +56,14 @@ export class TFLunaResponseParser extends Transform {
                 this.app.log([ModuleName, 'debug'], `hdr: ${header}, len: ${length}, cmd: ${commandId}, chk: ${checksum}`);
 
                 switch (commandId) {
+                    case TFLunaRestoreDefaultSettingsCommand:
+                        tfResponse = this.parseRestoreDefaultSettingsResponse(commandId, data);
+                        break;
+
+                    case TFLunaSaveCurrentSettingsCommand:
+                        tfResponse = this.parseSaveCurrentSettingsResponse(commandId, data);
+                        break;
+
                     case TFLunaSetBaudRateCommand:
                         tfResponse = this.parseSetBaudRateResponse(commandId, data);
                         break;
@@ -98,6 +110,24 @@ export class TFLunaResponseParser extends Transform {
         this.buffer = Buffer.alloc(0);
 
         return cb();
+    }
+
+    private parseRestoreDefaultSettingsResponse(commandId: number, data: Buffer): ITFLunaRestoreDefaultSettingsResponse {
+        this.app.log([ModuleName, 'debug'], `Restore default settings status: ${data.readUInt8(3)}`);
+
+        return {
+            commandId,
+            status: data.readUInt8(3)
+        }
+    }
+
+    private parseSaveCurrentSettingsResponse(commandId: number, data: Buffer): ITFLunaSaveCurrentSettingsResponse {
+        this.app.log([ModuleName, 'debug'], `Save current settings status: ${data.readUInt8(3)}`);
+
+        return {
+            commandId,
+            status: data.readUInt8(3)
+        }
     }
 
     private parseSetBaudRateResponse(commandId: number, data: Buffer): ITFLunaBaudResponse {

@@ -6,6 +6,10 @@ export interface IAppConfig {
 
 export const TFLunaCommandHeader = [0x5A];
 export const TFLunaMeasureHeader = [0x59, 0x59];
+export const TFLunaRestoreDefaultSettingsCommand = 0x10;
+export const TFLunaRestoreDefaultSettingsPrefix = [0x5A, 0x04, TFLunaRestoreDefaultSettingsCommand]
+export const TFLunaSaveCurrentSettingsCommand = 0x11;
+export const TFLunaSaveCurrentSettingsPrefix = [0x5A, 0x04, TFLunaSaveCurrentSettingsCommand];
 export const TFLunaSetBaudRateCommand = 0x06;
 export const TFLunaSetBaudRatePrefix = [0x5A, 0x08, TFLunaSetBaudRateCommand];
 export const TFLunaSetSampleRateCommand = 0x03;
@@ -17,6 +21,14 @@ export const TFLunaMeasurementPrefix = [0x5A, 0x04, TFLunaMeasurementCommand];
 
 export interface ITFLunaResponse {
     commandId: number;
+}
+
+export interface ITFLunaRestoreDefaultSettingsResponse extends ITFLunaResponse {
+    status: number;
+}
+
+export interface ITFLunaSaveCurrentSettingsResponse extends ITFLunaResponse {
+    status: number;
 }
 
 export interface ITFLunaBaudResponse extends ITFLunaResponse {
