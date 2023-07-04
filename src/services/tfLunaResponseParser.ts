@@ -2,7 +2,7 @@ import {
     Transform,
     TransformCallback,
     TransformOptions
-} from 'stream'
+} from 'stream';
 import {
     TFLunaCommandHeader,
     TFLunaMeasureHeader,
@@ -17,7 +17,7 @@ import {
     ITFLunaBaudResponse,
     ITFLunaSampleRateResponse,
     ITFLunaMeasureResponse,
-    ITFLunaVersionResponse,
+    ITFLunaVersionResponse
 } from '../models/carportTypes';
 
 const ModuleName = 'TFLunaResponseParser';
@@ -27,8 +27,8 @@ export interface TFLunaResponseOptions extends TransformOptions {
 }
 
 export class TFLunaResponseParser extends Transform {
-    logEnabled: boolean;
-    buffer: Buffer;
+    private logEnabled: boolean;
+    private buffer: Buffer;
 
     constructor({ logEnabled, ...options }: TFLunaResponseOptions) {
         super(options);
@@ -37,7 +37,7 @@ export class TFLunaResponseParser extends Transform {
         this.buffer = Buffer.alloc(0);
     }
 
-    public _transform(chunk: Buffer, _encoding: BufferEncoding, cb: TransformCallback) {
+    public _transform(chunk: Buffer, _encoding: BufferEncoding, cb: TransformCallback): void {
         let data = Buffer.concat([this.buffer, chunk]);
         let header;
         let length;
@@ -76,7 +76,7 @@ export class TFLunaResponseParser extends Transform {
                         break;
 
                     default:
-                        this.tfLog([ModuleName, 'debug'], `Unknown response data returned: ${commandId}`)
+                        this.tfLog([ModuleName, 'debug'], `Unknown response data returned: ${commandId}`);
                         break;
                 }
 
@@ -104,7 +104,7 @@ export class TFLunaResponseParser extends Transform {
         return cb();
     }
 
-    public _flush(cb: TransformCallback) {
+    public _flush(cb: TransformCallback): void {
         this.push(this.buffer);
         this.buffer = Buffer.alloc(0);
 
@@ -117,7 +117,7 @@ export class TFLunaResponseParser extends Transform {
         return {
             commandId,
             status: data.readUInt8(3)
-        }
+        };
     }
 
     private parseSaveCurrentSettingsResponse(commandId: number, data: Buffer): ITFLunaSaveCurrentSettingsResponse {
@@ -126,10 +126,11 @@ export class TFLunaResponseParser extends Transform {
         return {
             commandId,
             status: data.readUInt8(3)
-        }
+        };
     }
 
     private parseSetBaudRateResponse(commandId: number, data: Buffer): ITFLunaBaudResponse {
+        // eslint-disable-next-line no-bitwise
         const baudRate = ((data.readUInt8(6) << 24) + (data.readUInt8(5) << 16)) + ((data.readUInt8(4) << 8) + (data.readUInt8(3)));
 
         this.tfLog([ModuleName, 'debug'], `baudRate: ${baudRate}`);
@@ -137,7 +138,7 @@ export class TFLunaResponseParser extends Transform {
         return {
             commandId,
             baudRate
-        }
+        };
     }
 
     private parseSetSampleRateResponse(commandId: number, data: Buffer): ITFLunaSampleRateResponse {
@@ -146,7 +147,7 @@ export class TFLunaResponseParser extends Transform {
         return {
             commandId,
             sampleRate: data.readUInt16BE(3)
-        }
+        };
     }
 
     private parseGetVersionResponse(commandId: number, data: Buffer): ITFLunaVersionResponse {
@@ -157,7 +158,7 @@ export class TFLunaResponseParser extends Transform {
         return {
             commandId,
             version
-        }
+        };
     }
 
     private parseTriggerResponse(commandId: number, data: Buffer): ITFLunaMeasureResponse {
@@ -169,8 +170,8 @@ export class TFLunaResponseParser extends Transform {
             commandId,
             distCm,
             amp,
-            tempC: `${(tempC / 8) - 256}C`,
-        }
+            tempC: `${(tempC / 8) - 256}C`
+        };
     }
 
     private tfLog(tags: any, message: any) {

@@ -49,7 +49,7 @@ export class GarageDoorController {
 
     constructor(server: Server, garageDoorId: number, garageDoorControllerConfig: IGarageDoorControllerConfig) {
         this.server = server;
-        this.moduleName = `${ModuleName}-${garageDoorId}`
+        this.moduleName = `${ModuleName}-${garageDoorId}`;
         this.garageDoorId = garageDoorId;
         this.garageDoorControllerConfig = garageDoorControllerConfig;
         this.tfLunaStatus = {
@@ -211,15 +211,15 @@ export class GarageDoorController {
     }
 
     private portError(err: Error): void {
-        this.server.log([this.moduleName, 'error'], `portError: ${err.message}`);
+        this.server.log([this.moduleName, 'error'], `Serialport Error: ${err.message}`);
     }
 
     private portOpen(): void {
-        this.server.log([this.moduleName, 'info'], `port open`);
+        this.server.log([this.moduleName, 'info'], `Serialport open`);
     }
 
     private portClosed(): void {
-        this.server.log([this.moduleName, 'info'], `port closed`);
+        this.server.log([this.moduleName, 'info'], `Serialport closed`);
     }
 
     private tfLunaResponseParserHandler(data: ITFLunaResponse): void {
@@ -263,7 +263,7 @@ export class GarageDoorController {
                     break;
 
                 default:
-                    this.server.log([this.moduleName, 'debug'], `Unknown response command: ${commandId}`)
+                    this.server.log([this.moduleName, 'debug'], `Unknown response command: ${commandId}`);
                     break;
             }
         }
@@ -302,6 +302,7 @@ export class GarageDoorController {
         });
     }
 
+    // @ts-ignore
     private async restoreTFLunaSettings(): Promise<void> {
         this.server.log([this.moduleName, 'info'], `Restore default settings`);
 
@@ -315,13 +316,15 @@ export class GarageDoorController {
     }
 
     // @ts-ignore
-    private async setTFLunaBaudRate(baudRate: number = 115200): Promise<void> {
+    private async setTFLunaBaudRate(baudRate = 115200): Promise<void> {
         this.server.log([this.moduleName, 'info'], `Set baud rate request with value: ${baudRate}`);
 
+        /* eslint-disable no-bitwise */
         const data1 = (baudRate & 0xFF);
         const data2 = (baudRate & 0xFF00) >> 8;
         const data3 = (baudRate & 0x00FF0000) >> 16;
         const data4 = (baudRate & 0xFF000000) >> 24;
+        /* eslint-enable no-bitwise */
 
         await this.writeTFLunaCommand(Buffer.from(TFLunaSetBaudRatePrefix.concat([data1, data2, data3, data4, 0x00])));
     }
@@ -339,7 +342,7 @@ export class GarageDoorController {
     }
 
     private async writeTFLunaCommand(writeData: Buffer): Promise<void> {
-        return new Promise(async (resolve, reject) => {
+        return new Promise((resolve, reject) => {
             this.serialPort.write(writeData, async (writeError) => {
                 if (writeError) {
                     this.server.log([this.moduleName, 'error'], `Serial port write error: ${writeError.message}`);

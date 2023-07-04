@@ -63,7 +63,7 @@ export interface ITFLunaStatus {
 export const TFLunaCommandHeader = [0x5A];
 export const TFLunaMeasureHeader = [0x59, 0x59];
 export const TFLunaRestoreDefaultSettingsCommand = 0x10;
-export const TFLunaRestoreDefaultSettingsPrefix = [0x5A, 0x04, TFLunaRestoreDefaultSettingsCommand]
+export const TFLunaRestoreDefaultSettingsPrefix = [0x5A, 0x04, TFLunaRestoreDefaultSettingsCommand];
 export const TFLunaSaveCurrentSettingsCommand = 0x11;
 export const TFLunaSaveCurrentSettingsPrefix = [0x5A, 0x04, TFLunaSaveCurrentSettingsCommand];
 export const TFLunaSetBaudRateCommand = 0x06;

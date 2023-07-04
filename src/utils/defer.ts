@@ -14,7 +14,7 @@ export class DeferredPromise {
         this.catch = this.promiseInternal.catch.bind(this.promiseInternal);
     }
 
-    public get promise() {
+    public get promise(): Promise<any> {
         return this.promiseInternal;
     }
 }
