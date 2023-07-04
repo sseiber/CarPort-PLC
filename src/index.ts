@@ -1,8 +1,7 @@
 import { IGarageDoorControllerConfig } from './models/carportTypes';
-import { resolve as pathResolve } from 'path';
 import * as dotenv from 'dotenv';
 dotenv.config({
-    path: `${pathResolve(__dirname, '..', 'configs', 'envConfig')}.env`
+    path: `${process.env.CARPORT_SERVICE_STORAGE || '/rpi-gd/data'}/envConfig.env`
 });
 
 import { manifest } from './manifest';

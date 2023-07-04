@@ -33,11 +33,12 @@ const ModuleName = 'GarageDoorController';
 
 export class GarageDoorController {
     private server: Server;
+    private moduleName: string;
     private garageDoorId: number;
 
     private gpioAvailable: boolean;
     private bcm2835: Chip;
-    private actuater: Line;
+    private actuator: Line;
     private downState: Line;
     private upState: Line;
 
@@ -48,6 +49,7 @@ export class GarageDoorController {
 
     constructor(server: Server, garageDoorId: number, garageDoorControllerConfig: IGarageDoorControllerConfig) {
         this.server = server;
+        this.moduleName = `${ModuleName}-${garageDoorId}`
         this.garageDoorId = garageDoorId;
         this.garageDoorControllerConfig = garageDoorControllerConfig;
         this.tfLunaStatus = {
@@ -61,7 +63,7 @@ export class GarageDoorController {
     }
 
     public async init(): Promise<void> {
-        this.server.log([ModuleName, 'info'], `${ModuleName} initialzation: libgpiod version: ${version}, status: ${available() ? 'available' : 'unavailable'}`);
+        this.server.log([this.moduleName, 'info'], `${ModuleName} initialzation: libgpiod version: ${version()}, status: ${available() ? 'available' : 'unavailable'}`);
 
         try {
             this.gpioAvailable = available();
@@ -71,10 +73,10 @@ export class GarageDoorController {
 
             this.bcm2835 = new Chip(0);
 
-            this.server.log([ModuleName, 'info'], `Initializing garage controller GPIO pins`);
+            this.server.log([this.moduleName, 'info'], `Initializing garage controller GPIO pins`);
 
-            this.actuater = new Line(this.bcm2835, this.garageDoorControllerConfig.actuaterPin);
-            this.actuater.requestOutputMode();
+            this.actuator = new Line(this.bcm2835, this.garageDoorControllerConfig.actuatorPin);
+            this.actuator.requestOutputMode();
 
             this.downState = new Line(this.bcm2835, this.garageDoorControllerConfig.downStatePin);
             this.downState.requestInputMode();
@@ -82,9 +84,9 @@ export class GarageDoorController {
             this.upState = new Line(this.bcm2835, this.garageDoorControllerConfig.upStatePin);
             this.upState.requestInputMode();
 
-            this.serialPort = await this.openPort(this.garageDoorControllerConfig.tfLunaConfig.tfLunaSerialPort, this.garageDoorControllerConfig.tfLunaConfig.tfLunaBuadRate);
+            this.serialPort = await this.openPort(this.garageDoorControllerConfig.tfLunaSerialPort, this.garageDoorControllerConfig.tfLunaBuadRate);
 
-            await this.restoreTFLunaSettings();
+            // await this.restoreTFLunaSettings();
 
             // start with sampleRate === 0 to turn off sampling
             await this.setTFLunaSampleRate(0);
@@ -94,29 +96,29 @@ export class GarageDoorController {
             await this.getTFLunaVersion();
         }
         catch (ex) {
-            this.server.log([ModuleName, 'error'], `Error during init: ${ex.message}`);
+            this.server.log([this.moduleName, 'error'], `Error during init: ${ex.message}`);
         }
     }
 
     public async start(): Promise<void> {
-        this.server.log([ModuleName, 'info'], `TFLuna start`);
+        this.server.log([this.moduleName, 'info'], `TFLuna start`);
 
         try {
-            await this.setTFLunaSampleRate(this.garageDoorControllerConfig.tfLunaConfig.tfLunaSampleRate);
+            await this.setTFLunaSampleRate(this.garageDoorControllerConfig.tfLunaSampleRate);
         }
         catch (ex) {
-            this.server.log([ModuleName, 'error'], `Error during start measurement: ${ex.message}`);
+            this.server.log([this.moduleName, 'error'], `Error during start measurement: ${ex.message}`);
         }
     }
 
     public async stop(): Promise<void> {
-        this.server.log([ModuleName, 'info'], `TFLuna stop`);
+        this.server.log([this.moduleName, 'info'], `TFLuna stop`);
 
         try {
             await this.setTFLunaSampleRate(0);
         }
         catch (ex) {
-            this.server.log([ModuleName, 'error'], `Error during stop measurement: ${ex.message}`);
+            this.server.log([this.moduleName, 'error'], `Error during stop measurement: ${ex.message}`);
         }
     }
 
@@ -133,7 +135,7 @@ export class GarageDoorController {
             status = GarageDoorStatus.Unknown;
         }
         else {
-            this.server.log([ModuleName, 'info'], `GPIO access is unavailable`);
+            this.server.log([this.moduleName, 'info'], `GPIO access is unavailable`);
         }
 
         return status;
@@ -148,7 +150,7 @@ export class GarageDoorController {
             status = GarageDoorStatus.Unknown;
         }
         else {
-            this.server.log([ModuleName, 'info'], `GPIO access is unavailable`);
+            this.server.log([this.moduleName, 'info'], `GPIO access is unavailable`);
         }
 
         return status;
@@ -163,7 +165,7 @@ export class GarageDoorController {
             status = GarageDoorStatus.Unknown;
         }
         else {
-            this.server.log([ModuleName, 'info'], `GPIO access is unavailable`);
+            this.server.log([this.moduleName, 'info'], `GPIO access is unavailable`);
         }
 
         return status;
@@ -173,13 +175,13 @@ export class GarageDoorController {
         let status = GarageDoorStatus.Unknown;
 
         if (this.gpioAvailable) {
-            this.server.log([ModuleName, 'info'], `Reading GPIO value`);
+            this.server.log([this.moduleName, 'info'], `Reading GPIO value`);
 
             const valueDown = this.downState.getValue();
-            this.server.log([ModuleName, 'info'], `GPIO pin state ${this.garageDoorControllerConfig.downStatePin} has value ${valueDown}`);
+            this.server.log([this.moduleName, 'info'], `GPIO pin state ${this.garageDoorControllerConfig.downStatePin} has value ${valueDown}`);
 
             const valueUp = this.upState.getValue();
-            this.server.log([ModuleName, 'info'], `GPIO pin state ${this.garageDoorControllerConfig.upStatePin} has value ${valueUp}`);
+            this.server.log([this.moduleName, 'info'], `GPIO pin state ${this.garageDoorControllerConfig.upStatePin} has value ${valueUp}`);
 
             if (valueDown === GPIOState.LOW) {
                 status = GarageDoorStatus.Closed;
@@ -189,7 +191,7 @@ export class GarageDoorController {
             }
         }
         else {
-            this.server.log([ModuleName, 'info'], `GPIO access is unavailable`);
+            this.server.log([this.moduleName, 'info'], `GPIO access is unavailable`);
         }
 
         return status;
@@ -197,27 +199,27 @@ export class GarageDoorController {
 
     private async actuateGarageDoor(): Promise<void> {
         try {
-            this.server.log([ModuleName, 'info'], `Activating GPIO pin ${this.garageDoorControllerConfig.actuaterPin} for garageDoorId ${this.garageDoorId}`);
+            this.server.log([this.moduleName, 'info'], `Activating GPIO pin ${this.garageDoorControllerConfig.actuatorPin} for garageDoorId ${this.garageDoorId}`);
 
-            this.actuater.setValue(GPIOState.HIGH);
+            this.actuator.setValue(GPIOState.HIGH);
             await sleep(500);
-            this.actuater.setValue(GPIOState.LOW);
+            this.actuator.setValue(GPIOState.LOW);
         }
         catch (ex) {
-            this.server.log([ModuleName, 'info'], `Error activating garage door button: ${ex.message}`);
+            this.server.log([this.moduleName, 'info'], `Error activating garage door button: ${ex.message}`);
         }
     }
 
     private portError(err: Error): void {
-        this.server.log([ModuleName, 'error'], `portError: ${err.message}`);
+        this.server.log([this.moduleName, 'error'], `portError: ${err.message}`);
     }
 
     private portOpen(): void {
-        this.server.log([ModuleName, 'info'], `port open`);
+        this.server.log([this.moduleName, 'info'], `port open`);
     }
 
     private portClosed(): void {
-        this.server.log([ModuleName, 'info'], `port closed`);
+        this.server.log([this.moduleName, 'info'], `port closed`);
     }
 
     private tfLunaResponseParserHandler(data: ITFLunaResponse): void {
@@ -227,46 +229,46 @@ export class GarageDoorController {
                 case TFLunaRestoreDefaultSettingsCommand:
                     this.tfLunaStatus.restoreDefaultSettingsStatus = (data as ITFLunaRestoreDefaultSettingsResponse).status;
 
-                    this.server.log([ModuleName, 'info'], `Restore default settings response status: ${this.tfLunaStatus.restoreDefaultSettingsStatus}`);
+                    this.server.log([this.moduleName, 'info'], `Restore default settings response status: ${this.tfLunaStatus.restoreDefaultSettingsStatus}`);
                     break;
 
                 case TFLunaSaveCurrentSettingsCommand:
                     this.tfLunaStatus.saveCurrentSettingsStatus = (data as ITFLunaSaveCurrentSettingsResponse).status;
 
-                    this.server.log([ModuleName, 'info'], `Save current settings response status: ${this.tfLunaStatus.saveCurrentSettingsStatus}`);
+                    this.server.log([this.moduleName, 'info'], `Save current settings response status: ${this.tfLunaStatus.saveCurrentSettingsStatus}`);
                     break;
 
                 case TFLunaSetBaudRateCommand:
                     this.tfLunaStatus.baudRate = (data as ITFLunaBaudResponse).baudRate;
 
-                    this.server.log([ModuleName, 'info'], `Current baudRate: ${this.tfLunaStatus.baudRate}`);
+                    this.server.log([this.moduleName, 'info'], `Current baudRate: ${this.tfLunaStatus.baudRate}`);
                     break;
 
                 case TFLunaSetSampleRateCommand:
                     this.tfLunaStatus.sampleRate = (data as ITFLunaSampleRateResponse).sampleRate;
 
-                    this.server.log([ModuleName, 'info'], `Set sample rate response: ${this.tfLunaStatus.sampleRate}`);
+                    this.server.log([this.moduleName, 'info'], `Set sample rate response: ${this.tfLunaStatus.sampleRate}`);
                     break;
 
                 case TFLunaGetVersionCommand:
                     this.tfLunaStatus.version = (data as ITFLunaVersionResponse).version;
 
-                    this.server.log([ModuleName, 'info'], `Get current version response: ${this.tfLunaStatus.version}`);
+                    this.server.log([this.moduleName, 'info'], `Get current version response: ${this.tfLunaStatus.version}`);
                     break;
 
                 case TFLunaMeasurementCommand:
                     this.tfLunaStatus.measurement = (data as ITFLunaMeasureResponse).distCm;
 
-                    this.server.log([ModuleName, 'info'], `Get measurement response: ${this.tfLunaStatus.measurement}`);
+                    this.server.log([this.moduleName, 'info'], `Get measurement response: ${this.tfLunaStatus.measurement}`);
                     break;
 
                 default:
-                    this.server.log([ModuleName, 'debug'], `Unknown response command: ${commandId}`)
+                    this.server.log([this.moduleName, 'debug'], `Unknown response command: ${commandId}`)
                     break;
             }
         }
         else {
-            this.server.log([ModuleName, 'error'], `Received unknown response data...`);
+            this.server.log([this.moduleName, 'error'], `Received unknown response data...`);
         }
     }
 
@@ -284,7 +286,7 @@ export class GarageDoorController {
         port.on('close', this.portClosed.bind(this));
 
         this.tfLunaResponseParser = port.pipe(new TFLunaResponseParser({
-            logEnabled: this.garageDoorControllerConfig.tfLunaConfig.tfLunaSerialParserLog,
+            logEnabled: this.garageDoorControllerConfig.tfLunaSerialParserLog,
             objectMode: true
         }));
         this.tfLunaResponseParser.on('data', this.tfLunaResponseParserHandler.bind(this));
@@ -301,20 +303,20 @@ export class GarageDoorController {
     }
 
     private async restoreTFLunaSettings(): Promise<void> {
-        this.server.log([ModuleName, 'info'], `Restore default settings`);
+        this.server.log([this.moduleName, 'info'], `Restore default settings`);
 
         await this.writeTFLunaCommand(Buffer.from(TFLunaRestoreDefaultSettingsPrefix.concat([0x00])));
     }
 
     private async saveTFLunaSettings(): Promise<void> {
-        this.server.log([ModuleName, 'info'], `Save current settings settings`);
+        this.server.log([this.moduleName, 'info'], `Save current settings settings`);
 
         await this.writeTFLunaCommand(Buffer.from(TFLunaSaveCurrentSettingsPrefix.concat([0x00])));
     }
 
     // @ts-ignore
     private async setTFLunaBaudRate(baudRate: number = 115200): Promise<void> {
-        this.server.log([ModuleName, 'info'], `Set baud rate request with value: ${baudRate}`);
+        this.server.log([this.moduleName, 'info'], `Set baud rate request with value: ${baudRate}`);
 
         const data1 = (baudRate & 0xFF);
         const data2 = (baudRate & 0xFF00) >> 8;
@@ -325,13 +327,13 @@ export class GarageDoorController {
     }
 
     private async setTFLunaSampleRate(sampleRate: number): Promise<void> {
-        this.server.log([ModuleName, 'info'], `Set sample rate request with value: ${sampleRate}`);
+        this.server.log([this.moduleName, 'info'], `Set sample rate request with value: ${sampleRate}`);
 
         await this.writeTFLunaCommand(Buffer.from(TFLunaSetSampleRatePrefix.concat([sampleRate, 0x00, 0x00])));
     }
 
     private async getTFLunaVersion(): Promise<void> {
-        this.server.log([ModuleName, 'info'], `Get version request`);
+        this.server.log([this.moduleName, 'info'], `Get version request`);
 
         await this.writeTFLunaCommand(Buffer.from(TFLunaGetVersionPrefix.concat([0x00])));
     }
@@ -340,14 +342,14 @@ export class GarageDoorController {
         return new Promise(async (resolve, reject) => {
             this.serialPort.write(writeData, async (writeError) => {
                 if (writeError) {
-                    this.server.log([ModuleName, 'error'], `Serial port write error: ${writeError.message}`);
+                    this.server.log([this.moduleName, 'error'], `Serial port write error: ${writeError.message}`);
 
                     return reject(writeError);
                 }
 
                 this.serialPort.drain(async (drainError) => {
                     if (drainError) {
-                        this.server.log([ModuleName, 'error'], `Serial port drain error: ${drainError.message}`);
+                        this.server.log([this.moduleName, 'error'], `Serial port drain error: ${drainError.message}`);
 
                         return reject(drainError);
                     }

@@ -1,17 +1,13 @@
-export interface ITFLunaConfig {
-    tfLunaSerialPort: string;
-    tfLunaBuadRate: number;
-    tfLunaSampleRate: number;
-    tfLunaSerialParserLog: boolean;
-}
-
 export interface IGarageDoorControllerConfig {
-    actuaterPin: number;
+    actuatorPin: number;
     downStatePin: number;
     upStatePin: number;
     buttonContactTimeMs: number;
     doorCheckDelaySec: number;
-    tfLunaConfig: ITFLunaConfig;
+    tfLunaSerialPort: string;
+    tfLunaBuadRate: number;
+    tfLunaSampleRate: number;
+    tfLunaSerialParserLog: boolean;
 }
 
 export const enum GPIOState {

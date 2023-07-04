@@ -21,7 +21,8 @@
                 "<node_internals>/**"
             ],
             "env": {
-                "PORT": "9092"
+                "PORT": "9092",
+                "CARPORT_SERVICE_STORAGE": "${workspaceFolder}/configs"
             },
             "runtimeArgs": [
                 "--preserve-symlinks"
