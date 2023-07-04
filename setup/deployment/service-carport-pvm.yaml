@@ -1,0 +1,62 @@
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: rpi-gd-storage-class
+provisioner: microk8s.io/hostpath
+reclaimPolicy: Delete
+parameters:
+  pvDir: /rpi-gd/data
+volumeBindingMode: WaitForFirstConsumer
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: rpi-gd-pvc
+spec:
+  storageClassName: rpi-gd-storage-class
+  accessModes: [ReadWriteOnce]
+  resources: {requests: {storage: 1Mi}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: carport-server-deployment
+spec:
+  selector:
+    matchLabels:
+      app: carport-api-server
+  template:
+    metadata:
+      labels:
+        app: carport-api-server
+    spec:
+      volumes:
+      - name: rpi-gd-volume
+        persistentVolumeClaim:
+          claimName: rpi-gd-pvc
+      containers:
+      - name: carport-api-server
+        image: iotccrscotts.azurecr.io/carport-service:3.0.10-arm64v8
+        ports:
+        - containerPort: 9092
+        volumeMounts:
+        - name: rpi-gd-volume
+          mountPath: /rpi-gd/data
+        securityContext:
+          privileged: true
+      imagePullSecrets:
+      - name: rpi-gd-acr-access
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: carport-server-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: carport-api-server
+  ports:
+  - name: carport-api-server
+    protocol: TCP
+    port: 9092
+    targetPort: 9092

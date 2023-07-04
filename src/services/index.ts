@@ -1,5 +1,6 @@
-import { RpiGdPlc } from './rpiGdPlc';
 
-export {
-    RpiGdPlc
-};
+import { CarPortService } from './carport';
+
+export default [
+    CarPortService
+];

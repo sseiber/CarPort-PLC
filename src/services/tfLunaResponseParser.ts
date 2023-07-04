@@ -4,7 +4,6 @@ import {
     TransformOptions
 } from 'stream'
 import {
-    IAppConfig,
     TFLunaCommandHeader,
     TFLunaMeasureHeader,
     TFLunaRestoreDefaultSettingsCommand,
@@ -24,17 +23,17 @@ import {
 const ModuleName = 'TFLunaResponseParser';
 
 export interface TFLunaResponseOptions extends TransformOptions {
-    app: IAppConfig;
+    logEnabled: boolean;
 }
 
 export class TFLunaResponseParser extends Transform {
-    app: IAppConfig;
+    logEnabled: boolean;
     buffer: Buffer;
 
-    constructor({ app, ...options }: TFLunaResponseOptions) {
+    constructor({ logEnabled, ...options }: TFLunaResponseOptions) {
         super(options);
 
-        this.app = app;
+        this.logEnabled = logEnabled;
         this.buffer = Buffer.alloc(0);
     }
 
@@ -53,7 +52,7 @@ export class TFLunaResponseParser extends Transform {
                 commandId = data.readUInt8(2);
                 checksum = data.readUInt8(data.length - 1);
 
-                this.app.log([ModuleName, 'debug'], `hdr: ${header}, len: ${length}, cmd: ${commandId}, chk: ${checksum}`);
+                this.tfLog([ModuleName, 'debug'], `hdr: ${header}, len: ${length}, cmd: ${commandId}, chk: ${checksum}`);
 
                 switch (commandId) {
                     case TFLunaRestoreDefaultSettingsCommand:
@@ -77,7 +76,7 @@ export class TFLunaResponseParser extends Transform {
                         break;
 
                     default:
-                        this.app.log([ModuleName, 'debug'], `Unknown response data returned: ${commandId}`)
+                        this.tfLog([ModuleName, 'debug'], `Unknown response data returned: ${commandId}`)
                         break;
                 }
 
@@ -97,7 +96,7 @@ export class TFLunaResponseParser extends Transform {
             }
         }
         else {
-            this.app.log([ModuleName, 'debug'], `Parser data less than 2 bytes...`);
+            this.tfLog([ModuleName, 'debug'], `Parser data less than 2 bytes...`);
         }
 
         this.buffer = data;
@@ -113,7 +112,7 @@ export class TFLunaResponseParser extends Transform {
     }
 
     private parseRestoreDefaultSettingsResponse(commandId: number, data: Buffer): ITFLunaRestoreDefaultSettingsResponse {
-        this.app.log([ModuleName, 'debug'], `Restore default settings status: ${data.readUInt8(3)}`);
+        this.tfLog([ModuleName, 'debug'], `Restore default settings status: ${data.readUInt8(3)}`);
 
         return {
             commandId,
@@ -122,7 +121,7 @@ export class TFLunaResponseParser extends Transform {
     }
 
     private parseSaveCurrentSettingsResponse(commandId: number, data: Buffer): ITFLunaSaveCurrentSettingsResponse {
-        this.app.log([ModuleName, 'debug'], `Save current settings status: ${data.readUInt8(3)}`);
+        this.tfLog([ModuleName, 'debug'], `Save current settings status: ${data.readUInt8(3)}`);
 
         return {
             commandId,
@@ -133,7 +132,7 @@ export class TFLunaResponseParser extends Transform {
     private parseSetBaudRateResponse(commandId: number, data: Buffer): ITFLunaBaudResponse {
         const baudRate = ((data.readUInt8(6) << 24) + (data.readUInt8(5) << 16)) + ((data.readUInt8(4) << 8) + (data.readUInt8(3)));
 
-        this.app.log([ModuleName, 'debug'], `baudRate: ${baudRate}`);
+        this.tfLog([ModuleName, 'debug'], `baudRate: ${baudRate}`);
 
         return {
             commandId,
@@ -142,7 +141,7 @@ export class TFLunaResponseParser extends Transform {
     }
 
     private parseSetSampleRateResponse(commandId: number, data: Buffer): ITFLunaSampleRateResponse {
-        this.app.log([ModuleName, 'debug'], `sampleRate: ${data.readUInt16BE(3)}`);
+        this.tfLog([ModuleName, 'debug'], `sampleRate: ${data.readUInt16BE(3)}`);
 
         return {
             commandId,
@@ -153,7 +152,7 @@ export class TFLunaResponseParser extends Transform {
     private parseGetVersionResponse(commandId: number, data: Buffer): ITFLunaVersionResponse {
         const version = `${data.toString('utf8', 21, 23)}.${data.toString('utf8', 24, 26)}.${data.toString('utf8', 27, 29)}`;
 
-        this.app.log([ModuleName, 'debug'], `vers: ${version}`);
+        this.tfLog([ModuleName, 'debug'], `vers: ${version}`);
 
         return {
             commandId,
@@ -172,5 +171,15 @@ export class TFLunaResponseParser extends Transform {
             amp,
             tempC: `${(tempC / 8) - 256}C`,
         }
+    }
+
+    private tfLog(tags: any, message: any) {
+        if (!this.logEnabled) {
+            return;
+        }
+        const tagsMessage = (tags && Array.isArray(tags)) ? `[${tags.join(', ')}]` : '[]';
+
+        // eslint-disable-next-line no-console
+        console.log(`[${new Date().toTimeString()}] [${tagsMessage}] ${message}`);
     }
 }

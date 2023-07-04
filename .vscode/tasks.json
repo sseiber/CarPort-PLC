@@ -14,7 +14,7 @@
         },
         {
             "type": "typescript",
-            "label": "ts-watch domainprocessor service",
+            "label": "watch",
             "isBackground": true,
             "group": {
                 "kind": "build",

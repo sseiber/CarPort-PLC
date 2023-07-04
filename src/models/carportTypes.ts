@@ -1,7 +1,67 @@
-export interface IAppConfig {
+export interface ITFLunaConfig {
+    tfLunaSerialPort: string;
+    tfLunaBuadRate: number;
+    tfLunaSampleRate: number;
+    tfLunaSerialParserLog: boolean;
+}
+
+export interface IGarageDoorControllerConfig {
+    actuaterPin: number;
+    downStatePin: number;
+    upStatePin: number;
+    buttonContactTimeMs: number;
+    doorCheckDelaySec: number;
+    tfLunaConfig: ITFLunaConfig;
+}
+
+export const enum GPIOState {
+    LOW = 0,
+    HIGH = 1
+}
+
+export enum GarageDoorId {
+    GarageDoor1 = 0,
+    GarageDoor2 = 1,
+    GarageDoor3 = 2
+}
+
+export enum GarageDoorStatus {
+    Unknown = 'unknown',
+    Open = 'open',
+    Closed = 'closed'
+}
+
+export interface IGarageDoorStatus {
+    status: GarageDoorStatus;
+}
+
+export enum GarageDoorAction {
+    Actuate = 'actuate',
+    Open = 'open',
+    Close = 'close',
+    Check = 'check',
+    StartMeasurment = 'startMeasurement',
+    StopMeasurement = 'stopMeasurement'
+}
+
+export interface ICarPortServiceRequest {
+    garageDoorId: GarageDoorId;
+    action: GarageDoorAction;
+}
+
+export interface ICarPortServiceResponse {
+    succeeded: boolean;
+    message: string;
+    status: GarageDoorStatus;
+}
+
+export interface ITFLunaStatus {
+    restoreDefaultSettingsStatus: number;
+    saveCurrentSettingsStatus: number;
     baudRate: number;
     sampleRate: number;
-    log: (tags: any, message: any) => void;
+    version: string;
+    measurement: number;
 }
 
 export const TFLunaCommandHeader = [0x5A];

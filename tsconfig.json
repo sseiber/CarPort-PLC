@@ -25,7 +25,6 @@
         "node-libgpiod.d.ts"
     ],
     "exclude": [
-        "node_modules",
-        "scripts"
+        "node_modules"
     ]
 }

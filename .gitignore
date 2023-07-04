@@ -1,12 +1,12 @@
+## BEGIN Rush .gitignore
+
 # Logs
-logs
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
 # Runtime data
-pids
 *.pid
 *.seed
 *.pid.lock
@@ -16,6 +16,7 @@ lib-cov
 
 # Coverage directory used by tools like istanbul
 coverage
+coverage-browser
 
 # nyc test coverage
 .nyc_output
@@ -29,20 +30,15 @@ bower_components
 # node-waf configuration
 .lock-wscript
 
-# Compiled binary addons (http://nodejs.org/api/addons.html)
-build
+# Compiled binary addons (https://nodejs.org/api/addons.html)
 build/Release
 
 # Dependency directories
 node_modules/
 jspm_packages/
 
-# TSD Typings
-typings/
-
-# npm related
+# Optional npm cache directory
 .npm
-.npmrc*
 
 # Optional eslint cache
 .eslintcache
@@ -59,26 +55,107 @@ typings/
 # dotenv environment variables file
 .env
 
-# Build output
-dist
-server_dist
+# next.js build output
+.next
 
-# Ignore Mac DS_Store files
+# Common toolchain intermediate files
+temp
+
+# Rush files
+common/temp/**
+package-deps.json
+common/autoinstallers/*/.npmrc
+
+## END Rush .gitignore
+
+projects/*
+targets/*
+test/data/test_package.zip
+
+# Nuget packages and corresponding codegen sources
+.nuget
+packages
+
+# Visual Studio #
+*.suo
+*.user
+.ntvs_analysis.dat
+obj/*
+examples/obj
+examples/.ntvs_analysis.dat
+examples/.vs
+examples/bin
+.vs
+TestResults/*
+.vscode/*
+./**/.vscode/*
+
+# Node #
+**/node_modules/
+**/cjs/
+**/esm/
+**/lib/**/*.js
+**/lib/**/*.js.map
+**/*Bundle.js
+**/*Bundle.js.map
+**/package-lock.json
+npm-debug.log.*
+azure_error
+checkstyle-result.xml
+test-result.xml
+test-results.*xml
+**/cjs/
+**/esm/
+
+# Mac OS #
 .DS_Store
+.DS_Store?
+**/DS_Store
 
-debug.json
+# Windows #
+Thumbs.db
 
-*.swp
-**/bundle-*.js
-**/bundle-*.js.map
-**/common.js
-**/common.js.map
-coverage.html
+# Credentials #
+*.cer
+*.pfx
+*.pem
+*.key
 
-# node profiler
-profile**.txt
+# WebStorm #
+.idea/
 
-# project
-client
+# docs #
+docs/
+main.conf.json
+child.conf.json
+
+# temporary test artifacts
+test/tmp/*
+common/smoke-test/run-manifest.json
+
+# build artifacts
+dist
+dist-*
+test-dist
+test-dist*
+test-browser
+typings
+typedoc
+types
+es
+sdk/cosmosdb/cosmos/lib
+*.test.js
+*.test.js.map
+*lintReport.html
+
+# autorest generated files
+swagger/*.json
+
+# autorest artifacts
+code-model-*
+
+# LoopBox
+server_dist
+client_dist
+storage
 configs/**
-storage*/**

@@ -1,0 +1,35 @@
+[
+    {
+        "tfLunaSerialPort": "/dev/ttyAMA0",
+        "tfLunaBuadRate": 115200,
+        "tfLunaSampleRate": 2,
+        "tfLunaSerialParserLog": false,
+        "buttonPin": 16,
+        "downStatePin": 0,
+        "upStatePin": 3,
+        "buttonContactTimeMs": 300,
+        "doorCheckDelaySec": 20
+    },
+    {
+        "tfLunaSerialPort": "/dev/ttyAMA1",
+        "tfLunaBuadRate": 115200,
+        "tfLunaSampleRate": 2,
+        "tfLunaSerialParserLog": false,
+        "buttonPin": 18,
+        "downStatePin": 1,
+        "upStatePin": 4,
+        "buttonContactTimeMs": 300,
+        "doorCheckDelaySec": 20
+    },
+    {
+        "tfLunaSerialPort": "/dev/ttyAMA2",
+        "tfLunaBuadRate": 115200,
+        "tfLunaSampleRate": 2,
+        "tfLunaSerialParserLog": false,
+        "buttonPin": 19,
+        "downStatePin": 2,
+        "upStatePin": 5,
+        "buttonContactTimeMs": 300,
+        "doorCheckDelaySec": 20
+    }
+]

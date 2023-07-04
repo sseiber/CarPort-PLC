@@ -10,10 +10,10 @@
             "name": "Launch Service",
             "console": "integratedTerminal",
             "program": "${workspaceFolder}/src/index.ts",
-            "sourceMaps": true,
             "smartStep": true,
             "showAsyncStacks": true,
-            "preLaunchTask": "ts-watch domainprocessor service",
+            "sourceMaps": true,
+            "preLaunchTask": "${defaultBuildTask}",
             "outFiles": [
                 "${workspaceFolder}/dist/**/*.js"
             ],
@@ -21,7 +21,7 @@
                 "<node_internals>/**"
             ],
             "env": {
-                "PORT": "4334"
+                "PORT": "9092"
             },
             "runtimeArgs": [
                 "--preserve-symlinks"
