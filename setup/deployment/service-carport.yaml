@@ -17,7 +17,7 @@ spec:
           claimName: rpi-gd-pvc
       containers:
       - name: carport-api-server
-        image: iotccrscotts.azurecr.io/carport-service:3.0.10-arm64v8
+        image: iotccrscotts.azurecr.io/carport-plc:3.2.3-arm64v8
         ports:
         - containerPort: 9092
         volumeMounts:
