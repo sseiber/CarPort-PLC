@@ -1,14 +1,16 @@
-FROM arm64v8/alpine:3
+FROM arm64v8/ubuntu:22.04
 
-RUN apk add --no-cache \
-    # alpine-sdk \
-    build-base \
-    python3 \
-    libgpiod \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openssl \
+    curl \
+    build-essential \
+    gpiod \
     libgpiod-dev \
-    nodejs \
-    npm \
-    && rm -rf /var/cache/apk/*
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y --no-install-recommends  nodejs
 
 ENV WORKINGDIR /app
 WORKDIR ${WORKINGDIR}
