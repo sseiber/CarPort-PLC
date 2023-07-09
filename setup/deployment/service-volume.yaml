@@ -6,7 +6,7 @@ provisioner: microk8s.io/hostpath
 reclaimPolicy: Delete
 parameters:
   pvDir: /rpi-gd/data
-volumeBindingMode: WaitForFirstConsumer
+volumeBindingMode: Immediate
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
