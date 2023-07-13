@@ -23,13 +23,23 @@ export class CarPortService {
         this.server.log([ModuleName, 'info'], `CarPortService initialzation`);
 
         try {
-            this.garageDoorControllers = await this.initializeGarageDoorControllers();
+            // this.garageDoorControllers = await this.initializeGarageDoorControllers();
 
             this.opcuaServer = await this.initializeOpcuaServer();
         }
         catch (ex) {
             this.server.log([ModuleName, 'error'], `An error occurred initializing the libgpiod library: ${ex.message}`);
         }
+    }
+
+    public async stopOpcuaServer(): Promise<void> {
+        if (this.opcuaServer) {
+            this.server.log([ModuleName, 'info'], '☮︎ Stopping opcua server');
+
+            await this.opcuaServer.stop();
+        }
+
+        this.server.log(['shutdown', 'info'], `⏏︎ Server stopped`);
     }
 
     public async control(controlRequest: ICarPortServiceRequest): Promise<ICarPortServiceResponse> {

@@ -3,11 +3,6 @@ import {
 } from './models/carportTypes';
 import * as fse from 'fs-extra';
 import { resolve as pathResolve } from 'path';
-import * as dotenv from 'dotenv';
-dotenv.config({
-    path: `${process.env.CARPORT_SERVICE_STORAGE || '/rpi-gd/data'}/envConfig.env`
-});
-
 import { manifest } from './manifest';
 import { compose, ComposeOptions } from 'spryly';
 import * as os from 'os';
@@ -61,7 +56,9 @@ const composeOptions: ComposeOptions = {
 
 async function start() {
     try {
-        const storageRoot = process.env.CONTENT_ROOT ? pathResolve(__dirname, '..', process.env.CONTENT_ROOT) : '/rpi-gd/data';
+        const storageRoot = process.env.CARPORT_SERVICE_STORAGE
+            ? pathResolve(__dirname, '..', process.env.CARPORT_SERVICE_STORAGE)
+            : '/rpi-gd/data';
 
         const garageDoorControllerConfig = fse.readJsonSync(pathResolve(storageRoot, 'garageControllerConfig.json'));
         if (!Array.isArray(garageDoorControllerConfig)) {

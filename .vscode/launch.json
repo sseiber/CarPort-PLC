@@ -22,11 +22,8 @@
             ],
             "env": {
                 "PORT": "9092",
-                "CARPORT_SERVICE_STORAGE": "${workspaceFolder}/configs"
-            },
-            "runtimeArgs": [
-                "--preserve-symlinks"
-            ]
+                "CARPORT_SERVICE_STORAGE": "storage"
+            }
         }
     ]
 }
