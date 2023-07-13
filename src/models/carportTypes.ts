@@ -1,3 +1,12 @@
+import { OPCUAServerOptions } from 'node-opcua';
+import { IAssetRootConfig } from './opcuaServerTypes';
+
+export interface ICarPortConfig {
+    garageDoorControllerConfigs: IGarageDoorControllerConfig[];
+    serverConfig: OPCUAServerOptions;
+    assetRootConfig: IAssetRootConfig;
+}
+
 export interface IGarageDoorControllerConfig {
     actuatorPin: number;
     downStatePin: number;

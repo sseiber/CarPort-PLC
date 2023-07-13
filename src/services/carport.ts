@@ -1,13 +1,13 @@
 import { service, inject } from 'spryly';
 import { Server } from '@hapi/hapi';
 import {
-    IGarageDoorControllerConfig,
     GarageDoorStatus,
     GarageDoorAction,
     ICarPortServiceRequest,
     ICarPortServiceResponse
 } from '../models/carportTypes';
 import { GarageDoorController } from './garageDoorController';
+import { CarportOpcuaServer } from './opcuaServer';
 
 const ModuleName = 'carportService';
 
@@ -16,28 +16,16 @@ export class CarPortService {
     @inject('$server')
     private server: Server;
 
-    private garageDoorControllerConfigs: IGarageDoorControllerConfig[];
     private garageDoorControllers: GarageDoorController[];
+    private opcuaServer: CarportOpcuaServer;
 
     public async init(): Promise<void> {
         this.server.log([ModuleName, 'info'], `CarPortService initialzation`);
 
-        this.garageDoorControllers = [];
-
         try {
-            this.garageDoorControllerConfigs = this.server.settings.app.carport;
+            this.garageDoorControllers = await this.initializeGarageDoorControllers();
 
-            this.server.log([ModuleName, 'info'], `Garage controller configuration:\n${JSON.stringify(this.garageDoorControllerConfigs)}\n`);
-
-            this.server.log([ModuleName, 'info'], `Creating garage controllers`);
-            let garageDoorId = 0;
-            for (const garageDoorControllerConfig of this.garageDoorControllerConfigs) {
-                const garageDoorController = new GarageDoorController(this.server, garageDoorId++, garageDoorControllerConfig);
-
-                await garageDoorController.init();
-
-                this.garageDoorControllers.push(garageDoorController);
-            }
+            this.opcuaServer = await this.initializeOpcuaServer();
         }
         catch (ex) {
             this.server.log([ModuleName, 'error'], `An error occurred initializing the libgpiod library: ${ex.message}`);
@@ -100,5 +88,52 @@ export class CarPortService {
         }
 
         return response;
+    }
+
+    private async initializeGarageDoorControllers(): Promise<GarageDoorController[]> {
+        this.server.log([ModuleName, 'info'], `initializeGarageDoorControllers`);
+
+        const garageDoorControllers: GarageDoorController[] = [];
+
+        try {
+            const garageDoorControllerConfigs = this.server.settings.app.carport.garageDoorControllerConfigs;
+
+            this.server.log([ModuleName, 'info'], `Garage controller configuration:\n${JSON.stringify(garageDoorControllerConfigs)}\n`);
+
+            this.server.log([ModuleName, 'info'], `Creating garage controllers`);
+            let garageDoorId = 0;
+            for (const garageDoorControllerConfig of garageDoorControllerConfigs) {
+                const garageDoorController = new GarageDoorController(this.server, garageDoorId++, garageDoorControllerConfig);
+
+                await garageDoorController.init();
+
+                garageDoorControllers.push(garageDoorController);
+            }
+        }
+        catch (ex) {
+            this.server.log([ModuleName, 'error'], `An error occurred in initializeGarageDoorControllers: ${ex.message}`);
+        }
+
+        return garageDoorControllers;
+    }
+
+    private async initializeOpcuaServer(): Promise<CarportOpcuaServer> {
+        let opcuaServer: CarportOpcuaServer;
+
+        try {
+            this.server.log([ModuleName, 'info'], `initializeOpcuaServer`);
+
+            this.server.log([ModuleName, 'info'], `Initializing server...`);
+            opcuaServer = new CarportOpcuaServer(this.server);
+
+            await opcuaServer.start();
+
+            this.server.log([ModuleName, 'info'], `Server started with endpoint: ${opcuaServer.getEndpoint()}`);
+        }
+        catch (ex) {
+            this.server.log([ModuleName, 'error'], `An error occurred in initializeOpcuaServer: ${ex.message}`);
+        }
+
+        return opcuaServer;
     }
 }
