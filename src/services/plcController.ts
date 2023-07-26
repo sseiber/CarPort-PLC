@@ -21,7 +21,7 @@ import {
     ITFLunaVersionResponse,
     ITFLunaMeasureResponse,
     TFLunaMeasurementCommand,
-    GPIOPinType,
+    GPIOPinMode,
     IIndicatorLightAction,
     ITfMeasurementAction,
     TfMeasurementState
@@ -78,7 +78,7 @@ export class PlcController {
             this.server.log([this.moduleName, 'info'], `Initializing plc controller GPIO pins`);
 
             this.indicatorLightRedPin = new Line(this.bcm2835, this.plcGpioConfig.indicatorLightRedPin.pin);
-            if (this.plcGpioConfig.indicatorLightRedPin.type === GPIOPinType.Output) {
+            if (this.plcGpioConfig.indicatorLightRedPin.mode === GPIOPinMode.Output) {
                 this.indicatorLightRedPin.requestOutputMode();
             }
             else {
@@ -86,7 +86,7 @@ export class PlcController {
             }
 
             this.indicatorLightYellowPin = new Line(this.bcm2835, this.plcGpioConfig.indicatorLightYellowPin.pin);
-            if (this.plcGpioConfig.indicatorLightYellowPin.type === GPIOPinType.Output) {
+            if (this.plcGpioConfig.indicatorLightYellowPin.mode === GPIOPinMode.Output) {
                 this.indicatorLightYellowPin.requestOutputMode();
             }
             else {
@@ -94,7 +94,7 @@ export class PlcController {
             }
 
             this.indicatorLightGreenPin = new Line(this.bcm2835, this.plcGpioConfig.indicatorLightGreenPin.pin);
-            if (this.plcGpioConfig.indicatorLightGreenPin.type === GPIOPinType.Output) {
+            if (this.plcGpioConfig.indicatorLightGreenPin.mode === GPIOPinMode.Output) {
                 this.indicatorLightGreenPin.requestOutputMode();
             }
             else {

@@ -7,14 +7,14 @@ export interface IRpiPlcConfig {
     assetRootConfig: IAssetRootConfig;
 }
 
-export const enum GPIOPinType {
+export const enum GPIOPinMode {
     Input = 'INPUT',
     Output = 'OUTPUT'
 }
 
 export interface IPlcGpioPinConfig {
     pin: number;
-    type: GPIOPinType;
+    mode: GPIOPinMode;
 }
 
 export interface IPlcGpioConfig {
