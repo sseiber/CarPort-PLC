@@ -1,6 +1,6 @@
 
-import { CarPortService } from './carport';
+import { RpiPlcService } from './rpiPlc';
 
 export default [
-    CarPortService
+    RpiPlcService
 ];

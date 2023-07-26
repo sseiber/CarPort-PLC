@@ -18,7 +18,7 @@ import {
     ITFLunaSampleRateResponse,
     ITFLunaMeasureResponse,
     ITFLunaVersionResponse
-} from '../models/carportTypes';
+} from '../models/rpiPlcTypes';
 
 const ModuleName = 'TFLunaResponseParser';
 

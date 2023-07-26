@@ -1,4 +1,4 @@
-# CarPort garage door controller service
+# RpiPlc service
 
 ## Dependencies
   * Node

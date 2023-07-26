@@ -3,12 +3,12 @@ import { Request, ResponseObject, ResponseToolkit } from '@hapi/hapi';
 import {
     badRequest as boom_badRequest
 } from '@hapi/boom';
-import { CarPortService } from '../services/carport';
-import { ICarPortServiceRequest } from '../models/carportTypes';
+import { RpiPlcService } from '../services/rpiPlc';
+import { IRpiPlcServiceRequest } from '../models/rpiPlcTypes';
 
-export class CarPortRoutes extends RoutePlugin {
-    @inject('carportService')
-    private carportService: CarPortService;
+export class RpiPlcRoutes extends RoutePlugin {
+    @inject('rpiPlcService')
+    private rpiPlcService: RpiPlcService;
 
     @route({
         method: 'POST',
@@ -19,13 +19,13 @@ export class CarPortRoutes extends RoutePlugin {
         }
     })
     public async postProcess(request: Request, h: ResponseToolkit): Promise<ResponseObject> {
-        const controlRequest = request.payload as ICarPortServiceRequest;
+        const controlRequest = request.payload as IRpiPlcServiceRequest;
         if (!controlRequest.action) {
             throw boom_badRequest('Expected action field in request playload');
         }
 
         try {
-            const controlResponse = await this.carportService.control(controlRequest);
+            const controlResponse = await this.rpiPlcService.control(controlRequest);
 
             return h.response(controlResponse).code(201);
         }

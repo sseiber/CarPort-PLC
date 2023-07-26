@@ -1,6 +1,6 @@
 import {
-    ICarPortConfig
-} from './models/carportTypes';
+    IRpiPlcConfig
+} from './models/rpiPlcTypes';
 import * as fse from 'fs-extra';
 import { resolve as pathResolve } from 'path';
 import { manifest } from './manifest';
@@ -10,7 +10,7 @@ import { forget } from './utils';
 
 declare module '@hapi/hapi' {
     interface ServerOptionsApp {
-        carport?: ICarPortConfig;
+        rpiPlc?: IRpiPlcConfig;
     }
 }
 
@@ -56,18 +56,18 @@ const composeOptions: ComposeOptions = {
 
 async function start() {
     try {
-        const storageRoot = process.env.CARPORT_SERVICE_STORAGE
-            ? pathResolve(__dirname, '..', process.env.CARPORT_SERVICE_STORAGE)
-            : '/rpi-gd/data';
+        const storageRoot = process.env.RPIPLC_SERVICE_STORAGE
+            ? pathResolve(__dirname, '..', process.env.RPIPLC_SERVICE_STORAGE)
+            : '/rpi-plc/data';
 
-        const garageDoorControllerConfig = fse.readJsonSync(pathResolve(storageRoot, 'garageControllerConfig.json'));
-        if (!Array.isArray(garageDoorControllerConfig)) {
-            throw new Error('Error: Invalid CarPort garage door configuration detected');
+        const plcConfig = fse.readJsonSync(pathResolve(storageRoot, 'plcConfig.json'));
+        if (!Array.isArray(plcConfig)) {
+            throw new Error('Error: Invalid RpiPlc configuration detected');
         }
 
         const opcuaServerConfig = fse.readJSONSync(pathResolve(storageRoot, 'opcuaServerConfig.json'));
 
-        const server = await compose(manifest(garageDoorControllerConfig, opcuaServerConfig.serverConfig, opcuaServerConfig.assetRootConfig), composeOptions);
+        const server = await compose(manifest(plcConfig, opcuaServerConfig.serverConfig, opcuaServerConfig.assetRootConfig), composeOptions);
 
         const stopServer = async () => {
             server.log(['shutdown', 'info'], '☮︎ Stopping hapi server');
@@ -83,7 +83,7 @@ async function start() {
         server.log(['startup', 'info'], `🚀 Starting HAPI server instance...`);
         await server.start();
 
-        server.log(['startup', 'info'], `✅ CarPort Service started`);
+        server.log(['startup', 'info'], `✅ RpiPlc Service started`);
         server.log(['startup', 'info'], `🌎 ${server.info.uri}`);
         server.log(['startup', 'info'], ` > Hapi version: ${server.version}`);
         server.log(['startup', 'info'], ` > Plugins: [${Object.keys(server.registrations).join(', ')}]`);

@@ -1,18 +1,26 @@
 import { OPCUAServerOptions } from 'node-opcua';
 import { IAssetRootConfig } from './opcuaServerTypes';
 
-export interface ICarPortConfig {
-    garageDoorControllerConfigs: IGarageDoorControllerConfig[];
+export interface IRpiPlcConfig {
+    plcGpioConfigs: IPlcGpioConfig[];
     serverConfig: OPCUAServerOptions;
     assetRootConfig: IAssetRootConfig;
 }
 
-export interface IGarageDoorControllerConfig {
-    actuatorPin: number;
-    downStatePin: number;
-    upStatePin: number;
-    buttonContactTimeMs: number;
-    doorCheckDelaySec: number;
+export const enum GPIOPinType {
+    Input = 'INPUT',
+    Output = 'OUTPUT'
+}
+
+export interface IPlcGpioPinConfig {
+    pin: number;
+    type: GPIOPinType;
+}
+
+export interface IPlcGpioConfig {
+    indicatorLightRedPin: IPlcGpioPinConfig;
+    indicatorLightYellowPin: IPlcGpioPinConfig;
+    indicatorLightGreenPin: IPlcGpioPinConfig;
     tfLunaSerialPort: string;
     tfLunaBuadRate: number;
     tfLunaSampleRate: number;
@@ -20,44 +28,42 @@ export interface IGarageDoorControllerConfig {
 }
 
 export const enum GPIOState {
-    LOW = 0,
-    HIGH = 1
+    Low = 0,
+    High = 1
 }
 
-export enum GarageDoorId {
-    GarageDoor1 = 0,
-    GarageDoor2 = 1,
-    GarageDoor3 = 2
+export interface IIndicatorLightAction {
+    plcId: number;
+    ledRedState: GPIOState;
+    ledYellowState: GPIOState;
+    ledGreenState: GPIOState;
 }
 
-export enum GarageDoorStatus {
-    Unknown = 'unknown',
-    Open = 'open',
-    Closed = 'closed'
+export const enum TfMeasurementState {
+    Stop = 'STOP',
+    Start = 'START'
 }
 
-export interface IGarageDoorStatus {
-    status: GarageDoorStatus;
+export interface ITfMeasurementAction {
+    plcId: number;
+    measurementState: TfMeasurementState;
 }
 
-export enum GarageDoorAction {
-    Actuate = 'actuate',
-    Open = 'open',
-    Close = 'close',
-    Check = 'check',
-    StartMeasurment = 'startMeasurement',
-    StopMeasurement = 'stopMeasurement'
+export enum RpiPlcRequestAction {
+    IndicatorLight = 'INDICATORLIGHT',
+    TfMeasurement = 'MEASUREMENT',
 }
 
-export interface ICarPortServiceRequest {
-    garageDoorId: GarageDoorId;
-    action: GarageDoorAction;
+export interface IRpiPlcServiceRequest {
+    plcId: number;
+    action: RpiPlcRequestAction;
+    data?: any;
 }
 
-export interface ICarPortServiceResponse {
+export interface IRpiPlcServiceResponse {
     succeeded: boolean;
     message: string;
-    status: GarageDoorStatus;
+    status: any;
 }
 
 export interface ITFLunaStatus {

@@ -1,7 +1,7 @@
 {
-    "name": "carport-service",
-    "version": "3.2.3",
-    "description": "Car Port garage door controller service",
+    "name": "rpi-plc",
+    "version": "1.0.0",
+    "description": "Rpi sample plc and opcua server service",
     "main": "index.js",
     "scripts": {
         "test": "node ./node_modules/jest/bin/jest.js",
@@ -18,7 +18,7 @@
     "license": "MIT",
     "repository": {
         "type": "git",
-        "url": "git@github.com:sseiber/CarPort-Service.git"
+        "url": "git@github.com:sseiber/Rpi-Plc.git"
     },
     "dependencies": {
         "@hapi/boom": "^10.0.1",

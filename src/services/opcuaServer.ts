@@ -18,9 +18,9 @@ import {
     IAssetTag
 } from '../models/opcuaServerTypes';
 
-const ModuleName = 'CarportOpcuaServer';
+const ModuleName = 'RpiPlcOpcuaServer';
 
-export class CarportOpcuaServer {
+export class RpiPlcOpcuaServer {
     private server: Server;
     private opcuaServer: OPCUAServer;
     private addressSpace: AddressSpace;
@@ -41,7 +41,7 @@ export class CarportOpcuaServer {
         this.server.log([ModuleName, 'info'], `Instantiating opcua server`);
 
         try {
-            this.opcuaServer = new OPCUAServer(this.server.settings.app.carport.serverConfig);
+            this.opcuaServer = new OPCUAServer(this.server.settings.app.rpiPlc.serverConfig);
 
             await this.opcuaServer.initialize();
 
@@ -68,7 +68,7 @@ export class CarportOpcuaServer {
             endpoint = this.opcuaServer?.endpoints[0]?.endpointDescriptions()[0]?.endpointUrl;
         }
         catch (ex) {
-            this.server.log([ModuleName, 'error'], `Error getting server endpoint - may be another running instance at this port: ${this.server.settings.app.carport.serverConfig?.port}`);
+            this.server.log([ModuleName, 'error'], `Error getting server endpoint - may be another running instance at this port: ${this.server.settings.app.rpiPlc.serverConfig?.port}`);
         }
 
         return endpoint;
@@ -80,8 +80,8 @@ export class CarportOpcuaServer {
             this.localServerNamespace = this.addressSpace.getOwnNamespace();
 
             this.rootAssetsFolder = this.localServerNamespace.addFolder(this.addressSpace.rootFolder.objects, {
-                browseName: this.server.settings.app.carport.assetRootConfig.rootFolderName,
-                displayName: this.server.settings.app.carport.assetRootConfig.rootFolderName
+                browseName: this.server.settings.app.rpiPlc.assetRootConfig.rootFolderName,
+                displayName: this.server.settings.app.rpiPlc.assetRootConfig.rootFolderName
             });
 
             this.server.log([ModuleName, 'info'], `Processing server configuration...`);
@@ -94,7 +94,7 @@ export class CarportOpcuaServer {
 
     private async createAssets(): Promise<void> {
         try {
-            const assetConfigs: IAssetConfig[] = this.server.settings.app.carport.assetRootConfig.assets;
+            const assetConfigs: IAssetConfig[] = this.server.settings.app.rpiPlc.assetRootConfig.assets;
 
             for (const assetConfig of assetConfigs) {
                 const assetVariablesMap: Map<string, IOpcVariable> = new Map<string, IOpcVariable>();

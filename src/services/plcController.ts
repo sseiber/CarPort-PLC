@@ -1,8 +1,6 @@
 import { Server } from '@hapi/hapi';
 import {
-    IGarageDoorControllerConfig,
-    GPIOState,
-    GarageDoorStatus,
+    IPlcGpioConfig,
     ITFLunaStatus,
     TFLunaRestoreDefaultSettingsCommand,
     TFLunaRestoreDefaultSettingsPrefix,
@@ -22,36 +20,39 @@ import {
     ITFLunaSampleRateResponse,
     ITFLunaVersionResponse,
     ITFLunaMeasureResponse,
-    TFLunaMeasurementCommand
-} from '../models/carportTypes';
+    TFLunaMeasurementCommand,
+    GPIOPinType,
+    IIndicatorLightAction,
+    ITfMeasurementAction,
+    TfMeasurementState
+} from '../models/rpiPlcTypes';
 import { SerialPort } from 'serialport';
 import { TFLunaResponseParser } from './tfLunaResponseParser';
 import { version, Chip, Line, available } from 'node-libgpiod';
-import { sleep } from '../utils';
 
-const ModuleName = 'GarageDoorController';
+const ModuleName = 'PlcController';
 
-export class GarageDoorController {
+export class PlcController {
     private server: Server;
     private moduleName: string;
-    private garageDoorId: number;
+    private plcId: number;
 
     private gpioAvailable: boolean;
     private bcm2835: Chip;
-    private actuator: Line;
-    private downState: Line;
-    private upState: Line;
+    private indicatorLightRedPin: Line;
+    private indicatorLightYellowPin: Line;
+    private indicatorLightGreenPin: Line;
 
-    private garageDoorControllerConfig: IGarageDoorControllerConfig;
+    private plcGpioConfig: IPlcGpioConfig;
     private serialPort: SerialPort;
     private tfLunaResponseParser: TFLunaResponseParser;
     private tfLunaStatus: ITFLunaStatus;
 
-    constructor(server: Server, garageDoorId: number, garageDoorControllerConfig: IGarageDoorControllerConfig) {
+    constructor(server: Server, plcId: number, plcGpioConfig: IPlcGpioConfig) {
         this.server = server;
-        this.moduleName = `${ModuleName}-${garageDoorId}`;
-        this.garageDoorId = garageDoorId;
-        this.garageDoorControllerConfig = garageDoorControllerConfig;
+        this.moduleName = `${ModuleName}-${plcId}`;
+        this.plcId = plcId;
+        this.plcGpioConfig = plcGpioConfig;
         this.tfLunaStatus = {
             restoreDefaultSettingsStatus: 0,
             saveCurrentSettingsStatus: 0,
@@ -63,6 +64,7 @@ export class GarageDoorController {
     }
 
     public async init(): Promise<void> {
+        this.server.log([this.moduleName, 'info'], `${ModuleName} initialzation plcId: ${this.plcId} `);
         this.server.log([this.moduleName, 'info'], `${ModuleName} initialzation: libgpiod version: ${version()}, status: ${available() ? 'available' : 'unavailable'}`);
 
         try {
@@ -73,18 +75,33 @@ export class GarageDoorController {
 
             this.bcm2835 = new Chip(0);
 
-            this.server.log([this.moduleName, 'info'], `Initializing garage controller GPIO pins`);
+            this.server.log([this.moduleName, 'info'], `Initializing plc controller GPIO pins`);
 
-            this.actuator = new Line(this.bcm2835, this.garageDoorControllerConfig.actuatorPin);
-            this.actuator.requestOutputMode();
+            this.indicatorLightRedPin = new Line(this.bcm2835, this.plcGpioConfig.indicatorLightRedPin.pin);
+            if (this.plcGpioConfig.indicatorLightRedPin.type === GPIOPinType.Output) {
+                this.indicatorLightRedPin.requestOutputMode();
+            }
+            else {
+                this.indicatorLightRedPin.requestInputMode();
+            }
 
-            this.downState = new Line(this.bcm2835, this.garageDoorControllerConfig.downStatePin);
-            this.downState.requestInputMode();
+            this.indicatorLightYellowPin = new Line(this.bcm2835, this.plcGpioConfig.indicatorLightYellowPin.pin);
+            if (this.plcGpioConfig.indicatorLightYellowPin.type === GPIOPinType.Output) {
+                this.indicatorLightYellowPin.requestOutputMode();
+            }
+            else {
+                this.indicatorLightYellowPin.requestInputMode();
+            }
 
-            this.upState = new Line(this.bcm2835, this.garageDoorControllerConfig.upStatePin);
-            this.upState.requestInputMode();
+            this.indicatorLightGreenPin = new Line(this.bcm2835, this.plcGpioConfig.indicatorLightGreenPin.pin);
+            if (this.plcGpioConfig.indicatorLightGreenPin.type === GPIOPinType.Output) {
+                this.indicatorLightGreenPin.requestOutputMode();
+            }
+            else {
+                this.indicatorLightGreenPin.requestInputMode();
+            }
 
-            this.serialPort = await this.openPort(this.garageDoorControllerConfig.tfLunaSerialPort, this.garageDoorControllerConfig.tfLunaBuadRate);
+            this.serialPort = await this.openPort(this.plcGpioConfig.tfLunaSerialPort, this.plcGpioConfig.tfLunaBuadRate);
 
             // await this.restoreTFLunaSettings();
 
@@ -100,25 +117,19 @@ export class GarageDoorController {
         }
     }
 
-    public async start(): Promise<void> {
+    public async tfMeasurement(tfMeasurementaction: ITfMeasurementAction): Promise<void> {
         this.server.log([this.moduleName, 'info'], `TFLuna start`);
 
         try {
-            await this.setTFLunaSampleRate(this.garageDoorControllerConfig.tfLunaSampleRate);
+            if (tfMeasurementaction.measurementState === TfMeasurementState.Start) {
+                await this.setTFLunaSampleRate(this.plcGpioConfig.tfLunaSampleRate);
+            }
+            else {
+                await this.setTFLunaSampleRate(0);
+            }
         }
         catch (ex) {
             this.server.log([this.moduleName, 'error'], `Error during start measurement: ${ex.message}`);
-        }
-    }
-
-    public async stop(): Promise<void> {
-        this.server.log([this.moduleName, 'info'], `TFLuna stop`);
-
-        try {
-            await this.setTFLunaSampleRate(0);
-        }
-        catch (ex) {
-            this.server.log([this.moduleName, 'error'], `Error during stop measurement: ${ex.message}`);
         }
     }
 
@@ -126,88 +137,21 @@ export class GarageDoorController {
         await this.writeTFLunaCommand(Buffer.from(TFLunaMeasurementPrefix.concat([0x00])));
     }
 
-    public async actuate(): Promise<GarageDoorStatus> {
-        let status = GarageDoorStatus.Unknown;
+    public async indicatorLight(lightAction: IIndicatorLightAction): Promise<any> {
+        let status = false;
 
         if (this.gpioAvailable) {
-            await this.actuateGarageDoor();
+            this.indicatorLightRedPin.setValue(lightAction.ledRedState);
+            this.indicatorLightYellowPin.setValue(lightAction.ledYellowState);
+            this.indicatorLightGreenPin.setValue(lightAction.ledGreenState);
 
-            status = GarageDoorStatus.Unknown;
+            status = true;
         }
         else {
             this.server.log([this.moduleName, 'info'], `GPIO access is unavailable`);
         }
 
         return status;
-    }
-
-    public async open(): Promise<GarageDoorStatus> {
-        let status = GarageDoorStatus.Unknown;
-
-        if (this.gpioAvailable) {
-            await this.actuateGarageDoor();
-
-            status = GarageDoorStatus.Unknown;
-        }
-        else {
-            this.server.log([this.moduleName, 'info'], `GPIO access is unavailable`);
-        }
-
-        return status;
-    }
-
-    public async close(): Promise<GarageDoorStatus> {
-        let status = GarageDoorStatus.Unknown;
-
-        if (this.gpioAvailable) {
-            await this.actuateGarageDoor();
-
-            status = GarageDoorStatus.Unknown;
-        }
-        else {
-            this.server.log([this.moduleName, 'info'], `GPIO access is unavailable`);
-        }
-
-        return status;
-    }
-
-    public async check(): Promise<GarageDoorStatus> {
-        let status = GarageDoorStatus.Unknown;
-
-        if (this.gpioAvailable) {
-            this.server.log([this.moduleName, 'info'], `Reading GPIO value`);
-
-            const valueDown = this.downState.getValue();
-            this.server.log([this.moduleName, 'info'], `GPIO pin state ${this.garageDoorControllerConfig.downStatePin} has value ${valueDown}`);
-
-            const valueUp = this.upState.getValue();
-            this.server.log([this.moduleName, 'info'], `GPIO pin state ${this.garageDoorControllerConfig.upStatePin} has value ${valueUp}`);
-
-            if (valueDown === GPIOState.LOW) {
-                status = GarageDoorStatus.Closed;
-            }
-            else if (valueUp === GPIOState.LOW) {
-                status = GarageDoorStatus.Open;
-            }
-        }
-        else {
-            this.server.log([this.moduleName, 'info'], `GPIO access is unavailable`);
-        }
-
-        return status;
-    }
-
-    private async actuateGarageDoor(): Promise<void> {
-        try {
-            this.server.log([this.moduleName, 'info'], `Activating GPIO pin ${this.garageDoorControllerConfig.actuatorPin} for garageDoorId ${this.garageDoorId}`);
-
-            this.actuator.setValue(GPIOState.HIGH);
-            await sleep(500);
-            this.actuator.setValue(GPIOState.LOW);
-        }
-        catch (ex) {
-            this.server.log([this.moduleName, 'info'], `Error activating garage door button: ${ex.message}`);
-        }
     }
 
     private portError(err: Error): void {
@@ -286,7 +230,7 @@ export class GarageDoorController {
         port.on('close', this.portClosed.bind(this));
 
         this.tfLunaResponseParser = port.pipe(new TFLunaResponseParser({
-            logEnabled: this.garageDoorControllerConfig.tfLunaSerialParserLog,
+            logEnabled: this.plcGpioConfig.tfLunaSerialParserLog,
             objectMode: true
         }));
         this.tfLunaResponseParser.on('data', this.tfLunaResponseParserHandler.bind(this));

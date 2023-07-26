@@ -16,6 +16,6 @@ spec:
         path: "/"
         backend:
           service:
-            name: carport-server-service
+            name: rpiplc-server-service
             port:
               number: 80

@@ -1,8 +1,8 @@
 
 import { HealthRoutes } from './health';
-import { CarPortRoutes } from './carport';
+import { RpiPlcRoutes } from './rpiPlc';
 
 export default [
     HealthRoutes,
-    CarPortRoutes
+    RpiPlcRoutes
 ];
