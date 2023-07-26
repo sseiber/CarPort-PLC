@@ -118,7 +118,7 @@ export class PlcController {
     }
 
     public async tfMeasurement(tfMeasurementaction: ITfMeasurementAction): Promise<void> {
-        this.server.log([this.moduleName, 'info'], `TFLuna start`);
+        this.server.log([this.moduleName, 'info'], `TFLuna measurement`);
 
         try {
             if (tfMeasurementaction.measurementState === TfMeasurementState.Start) {
@@ -129,7 +129,7 @@ export class PlcController {
             }
         }
         catch (ex) {
-            this.server.log([this.moduleName, 'error'], `Error during start measurement: ${ex.message}`);
+            this.server.log([this.moduleName, 'error'], `Error during TFLuna measurement control: ${ex.message}`);
         }
     }
 
