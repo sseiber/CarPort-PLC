@@ -1,6 +1,6 @@
 {
     "name": "carport-service",
-    "version": "3.2.3",
+    "version": "3.2.4",
     "description": "Car Port garage door controller service",
     "main": "index.js",
     "scripts": {
@@ -28,7 +28,6 @@
         "fs-extra": "^11.1.1",
         "moment": "^2.29.4",
         "node-libgpiod": "0.3.0",
-        "node-opcua": "^2.107.0",
         "serialport": "^11.0.0",
         "spryly": "^3.0.2",
         "uuid": "^9.0.0"
