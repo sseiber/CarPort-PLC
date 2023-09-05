@@ -7,7 +7,6 @@ import {
     ICarPortServiceResponse
 } from '../models/carportTypes';
 import { GarageDoorController } from './garageDoorController';
-import { CarportOpcuaServer } from './opcuaServer';
 
 const ModuleName = 'carportService';
 
@@ -17,29 +16,16 @@ export class CarPortService {
     private server: Server;
 
     private garageDoorControllers: GarageDoorController[];
-    private opcuaServer: CarportOpcuaServer;
 
     public async init(): Promise<void> {
         this.server.log([ModuleName, 'info'], `CarPortService initialzation`);
 
         try {
-            // this.garageDoorControllers = await this.initializeGarageDoorControllers();
-
-            this.opcuaServer = await this.initializeOpcuaServer();
+            this.garageDoorControllers = await this.initializeGarageDoorControllers();
         }
         catch (ex) {
-            this.server.log([ModuleName, 'error'], `An error occurred initializing the libgpiod library: ${ex.message}`);
+            this.server.log([ModuleName, 'error'], `An error occurred initializing the garage door controller: ${ex.message}`);
         }
-    }
-
-    public async stopOpcuaServer(): Promise<void> {
-        if (this.opcuaServer) {
-            this.server.log([ModuleName, 'info'], '☮︎ Stopping opcua server');
-
-            await this.opcuaServer.stop();
-        }
-
-        this.server.log(['shutdown', 'info'], `⏏︎ Server stopped`);
     }
 
     public async control(controlRequest: ICarPortServiceRequest): Promise<ICarPortServiceResponse> {
@@ -72,13 +58,17 @@ export class CarPortService {
                     break;
 
                 case GarageDoorAction.StartMeasurment:
-                    await this.garageDoorControllers[controlRequest.garageDoorId].start();
+                    await this.garageDoorControllers[controlRequest.garageDoorId].startTFLunaMeasurement();
                     response.message = `Garage door distance measurement started...`;
                     break;
 
                 case GarageDoorAction.StopMeasurement:
-                    await this.garageDoorControllers[controlRequest.garageDoorId].stop();
+                    await this.garageDoorControllers[controlRequest.garageDoorId].stopTFLunaMeasurement();
                     response.message = `Garage door distance measurement stopped`;
+                    break;
+
+                case GarageDoorAction.GetMeasurement:
+                    await this.garageDoorControllers[controlRequest.garageDoorId].getTFLunaMeasurement();
                     break;
 
                 default:
@@ -125,25 +115,5 @@ export class CarPortService {
         }
 
         return garageDoorControllers;
-    }
-
-    private async initializeOpcuaServer(): Promise<CarportOpcuaServer> {
-        let opcuaServer: CarportOpcuaServer;
-
-        try {
-            this.server.log([ModuleName, 'info'], `initializeOpcuaServer`);
-
-            this.server.log([ModuleName, 'info'], `Initializing server...`);
-            opcuaServer = new CarportOpcuaServer(this.server);
-
-            await opcuaServer.start();
-
-            this.server.log([ModuleName, 'info'], `Server started with endpoint: ${opcuaServer.getEndpoint()}`);
-        }
-        catch (ex) {
-            this.server.log([ModuleName, 'error'], `An error occurred in initializeOpcuaServer: ${ex.message}`);
-        }
-
-        return opcuaServer;
     }
 }

@@ -45,7 +45,7 @@ export class TFLunaResponseParser extends Transform {
         let checksum;
         let tfResponse: any = {};
 
-        if (data.length >= 2) {
+        while (data.length >= 2) {
             if (Buffer.compare(data.subarray(0, 1), Buffer.from(TFLunaCommandHeader)) === 0) {
                 header = data.readUInt8(0);
                 length = data.readUInt8(1);
@@ -79,9 +79,6 @@ export class TFLunaResponseParser extends Transform {
                         this.tfLog([ModuleName, 'debug'], `Unknown response data returned: ${commandId}`);
                         break;
                 }
-
-                this.push(tfResponse);
-                data = data.subarray(length);
             }
             else if (Buffer.compare(data.subarray(0, 2), Buffer.from(TFLunaMeasureHeader)) === 0) {
                 header = data.readUInt16BE(0);
@@ -90,16 +87,15 @@ export class TFLunaResponseParser extends Transform {
                 checksum = data.readUInt8(data.length - 1);
 
                 tfResponse = this.parseTriggerResponse(commandId, data);
-
-                this.push(tfResponse);
-                data = data.subarray(length);
             }
-        }
-        else {
-            this.tfLog([ModuleName, 'debug'], `Parser data less than 2 bytes...`);
+
+            this.push(tfResponse);
+            data = data.subarray(length);
         }
 
         this.buffer = data;
+
+        this.tfLog([ModuleName, 'debug'], `In _transform: length: ${this.readableLength}, buffer: ${this.buffer.toString('hex')}`);
 
         return cb();
     }
@@ -107,6 +103,8 @@ export class TFLunaResponseParser extends Transform {
     public _flush(cb: TransformCallback): void {
         this.push(this.buffer);
         this.buffer = Buffer.alloc(0);
+
+        this.tfLog([ModuleName, 'debug'], `In _flush: length: ${this.readableLength}, buffer: ${this.buffer.toString('hex')}`);
 
         return cb();
     }
@@ -164,13 +162,16 @@ export class TFLunaResponseParser extends Transform {
     private parseTriggerResponse(commandId: number, data: Buffer): ITFLunaMeasureResponse {
         const amp = data.readUInt16LE(4);
         const distCm = (amp <= 100 || amp === 65535) ? 0 : data.readUInt16LE(2);
-        const tempC = data.readUInt16LE(6);
+        const tempCt = data.readUInt16LE(6);
+        const tempC = tempCt ? (tempCt / 8) - 256 : 0;
+
+        this.tfLog([ModuleName, 'debug'], `trig: distCm ${distCm}, amp ${amp}, tempC ${tempC}`);
 
         return {
             commandId,
             distCm,
             amp,
-            tempC: `${(tempC / 8) - 256}C`
+            tempC: tempC.toString()
         };
     }
 

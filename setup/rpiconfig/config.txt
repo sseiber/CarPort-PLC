@@ -19,6 +19,12 @@ dtparam=i2c_arm=off
 # the edges of your display
 disable_overscan=1
 
+# Disable onboard Bluetooth on Pi 3B, 3B+, 3A+, 4B and Zero W, restoring
+# UART0/ttyAMA0 over GPIOs 14 & 15.
+# N.B. To disable the systemd service that initialises the modem so it
+# doesn't use the UART, use 'sudo systemctl disable hciuart'
+dtoverlay=disable-bt
+
 # If you have issues with audio, you may try uncommenting the following line
 # which forces the HDMI output into HDMI mode instead of DVI (which doesn't
 # support audio output)

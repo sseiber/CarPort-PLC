@@ -1,17 +1,12 @@
-import { OPCUAServerOptions } from 'node-opcua';
-import { IAssetRootConfig } from './opcuaServerTypes';
-
 export interface ICarPortConfig {
     garageDoorControllerConfigs: IGarageDoorControllerConfig[];
-    serverConfig: OPCUAServerOptions;
-    assetRootConfig: IAssetRootConfig;
 }
 
 export interface IGarageDoorControllerConfig {
     actuatorPin: number;
     downStatePin: number;
     upStatePin: number;
-    buttonContactTimeMs: number;
+    actuatorPulseDurationMs: number;
     doorCheckDelaySec: number;
     tfLunaSerialPort: string;
     tfLunaBuadRate: number;
@@ -46,7 +41,8 @@ export enum GarageDoorAction {
     Close = 'close',
     Check = 'check',
     StartMeasurment = 'startMeasurement',
-    StopMeasurement = 'stopMeasurement'
+    StopMeasurement = 'stopMeasurement',
+    GetMeasurement = 'getMeasurement'
 }
 
 export interface ICarPortServiceRequest {

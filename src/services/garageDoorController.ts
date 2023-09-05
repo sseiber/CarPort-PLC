@@ -88,6 +88,8 @@ export class GarageDoorController {
 
             // await this.restoreTFLunaSettings();
 
+            await this.setTFLunaBaudRate();
+
             // start with sampleRate === 0 to turn off sampling
             await this.setTFLunaSampleRate(0);
 
@@ -100,8 +102,8 @@ export class GarageDoorController {
         }
     }
 
-    public async start(): Promise<void> {
-        this.server.log([this.moduleName, 'info'], `TFLuna start`);
+    public async startTFLunaMeasurement(): Promise<void> {
+        this.server.log([this.moduleName, 'info'], `startTFLunaMeasurement start`);
 
         try {
             await this.setTFLunaSampleRate(this.garageDoorControllerConfig.tfLunaSampleRate);
@@ -111,8 +113,8 @@ export class GarageDoorController {
         }
     }
 
-    public async stop(): Promise<void> {
-        this.server.log([this.moduleName, 'info'], `TFLuna stop`);
+    public async stopTFLunaMeasurement(): Promise<void> {
+        this.server.log([this.moduleName, 'info'], `startTFLunaMeasurement stop`);
 
         try {
             await this.setTFLunaSampleRate(0);
@@ -123,20 +125,31 @@ export class GarageDoorController {
     }
 
     public async getTFLunaMeasurement(): Promise<void> {
-        await this.writeTFLunaCommand(Buffer.from(TFLunaMeasurementPrefix.concat([0x00])));
+        if (this.tfLunaStatus.sampleRate === 0) {
+            await this.writeTFLunaCommand(Buffer.from(TFLunaMeasurementPrefix.concat([0x00])));
+        }
+        else {
+            this.server.log([this.moduleName, 'info'], `Measurement is already running`);
+        }
     }
 
     public async actuate(): Promise<GarageDoorStatus> {
         let status = GarageDoorStatus.Unknown;
 
-        if (this.gpioAvailable) {
-            await this.actuateGarageDoor();
+        try {
+            if (this.gpioAvailable) {
+                await this.actuateGarageDoor();
 
-            status = GarageDoorStatus.Unknown;
+                status = GarageDoorStatus.Unknown;
+            }
+            else {
+                this.server.log([this.moduleName, 'info'], `GPIO access is unavailable`);
+            }
         }
-        else {
-            this.server.log([this.moduleName, 'info'], `GPIO access is unavailable`);
+        catch (ex) {
+            this.server.log([this.moduleName, 'error'], `Error during garage door controller actuate control: ${ex.message}`);
         }
+
 
         return status;
     }
@@ -144,14 +157,20 @@ export class GarageDoorController {
     public async open(): Promise<GarageDoorStatus> {
         let status = GarageDoorStatus.Unknown;
 
-        if (this.gpioAvailable) {
-            await this.actuateGarageDoor();
+        try {
+            if (this.gpioAvailable) {
+                await this.actuateGarageDoor();
 
-            status = GarageDoorStatus.Unknown;
+                status = GarageDoorStatus.Unknown;
+            }
+            else {
+                this.server.log([this.moduleName, 'info'], `GPIO access is unavailable`);
+            }
         }
-        else {
-            this.server.log([this.moduleName, 'info'], `GPIO access is unavailable`);
+        catch (ex) {
+            this.server.log([this.moduleName, 'error'], `Error during garage door controller open control: ${ex.message}`);
         }
+
 
         return status;
     }
@@ -159,13 +178,18 @@ export class GarageDoorController {
     public async close(): Promise<GarageDoorStatus> {
         let status = GarageDoorStatus.Unknown;
 
-        if (this.gpioAvailable) {
-            await this.actuateGarageDoor();
+        try {
+            if (this.gpioAvailable) {
+                await this.actuateGarageDoor();
 
-            status = GarageDoorStatus.Unknown;
+                status = GarageDoorStatus.Unknown;
+            }
+            else {
+                this.server.log([this.moduleName, 'info'], `GPIO access is unavailable`);
+            }
         }
-        else {
-            this.server.log([this.moduleName, 'info'], `GPIO access is unavailable`);
+        catch (ex) {
+            this.server.log([this.moduleName, 'error'], `Error during garage door controller close control: ${ex.message}`);
         }
 
         return status;
@@ -174,24 +198,29 @@ export class GarageDoorController {
     public async check(): Promise<GarageDoorStatus> {
         let status = GarageDoorStatus.Unknown;
 
-        if (this.gpioAvailable) {
-            this.server.log([this.moduleName, 'info'], `Reading GPIO value`);
+        try {
+            if (this.gpioAvailable) {
+                this.server.log([this.moduleName, 'info'], `Reading GPIO value`);
 
-            const valueDown = this.downState.getValue();
-            this.server.log([this.moduleName, 'info'], `GPIO pin state ${this.garageDoorControllerConfig.downStatePin} has value ${valueDown}`);
+                const valueDown = this.downState.getValue();
+                this.server.log([this.moduleName, 'info'], `GPIO pin state ${this.garageDoorControllerConfig.downStatePin} has value ${valueDown}`);
 
-            const valueUp = this.upState.getValue();
-            this.server.log([this.moduleName, 'info'], `GPIO pin state ${this.garageDoorControllerConfig.upStatePin} has value ${valueUp}`);
+                const valueUp = this.upState.getValue();
+                this.server.log([this.moduleName, 'info'], `GPIO pin state ${this.garageDoorControllerConfig.upStatePin} has value ${valueUp}`);
 
-            if (valueDown === GPIOState.LOW) {
-                status = GarageDoorStatus.Closed;
+                if (valueDown === GPIOState.LOW) {
+                    status = GarageDoorStatus.Closed;
+                }
+                else if (valueUp === GPIOState.LOW) {
+                    status = GarageDoorStatus.Open;
+                }
             }
-            else if (valueUp === GPIOState.LOW) {
-                status = GarageDoorStatus.Open;
+            else {
+                this.server.log([this.moduleName, 'info'], `GPIO access is unavailable`);
             }
         }
-        else {
-            this.server.log([this.moduleName, 'info'], `GPIO access is unavailable`);
+        catch (ex) {
+            this.server.log([this.moduleName, 'error'], `Error during garage door controller check control: ${ex.message}`);
         }
 
         return status;
@@ -202,7 +231,7 @@ export class GarageDoorController {
             this.server.log([this.moduleName, 'info'], `Activating GPIO pin ${this.garageDoorControllerConfig.actuatorPin} for garageDoorId ${this.garageDoorId}`);
 
             this.actuator.setValue(GPIOState.HIGH);
-            await sleep(500);
+            await sleep(this.garageDoorControllerConfig.actuatorPulseDurationMs);
             this.actuator.setValue(GPIOState.LOW);
         }
         catch (ex) {
@@ -287,7 +316,8 @@ export class GarageDoorController {
 
         this.tfLunaResponseParser = port.pipe(new TFLunaResponseParser({
             logEnabled: this.garageDoorControllerConfig.tfLunaSerialParserLog,
-            objectMode: true
+            objectMode: true,
+            highWaterMark: 1000
         }));
         this.tfLunaResponseParser.on('data', this.tfLunaResponseParserHandler.bind(this));
 
@@ -315,7 +345,6 @@ export class GarageDoorController {
         await this.writeTFLunaCommand(Buffer.from(TFLunaSaveCurrentSettingsPrefix.concat([0x00])));
     }
 
-    // @ts-ignore
     private async setTFLunaBaudRate(baudRate = 115200): Promise<void> {
         this.server.log([this.moduleName, 'info'], `Set baud rate request with value: ${baudRate}`);
 
@@ -342,24 +371,29 @@ export class GarageDoorController {
     }
 
     private async writeTFLunaCommand(writeData: Buffer): Promise<void> {
-        return new Promise((resolve, reject) => {
-            this.serialPort.write(writeData, async (writeError) => {
-                if (writeError) {
-                    this.server.log([this.moduleName, 'error'], `Serial port write error: ${writeError.message}`);
+        try {
+            await new Promise<void>((resolve, reject) => {
+                this.serialPort.write(writeData, async (writeError) => {
+                    if (writeError) {
+                        this.server.log([this.moduleName, 'error'], `Serial port write error: ${writeError.message}`);
 
-                    return reject(writeError);
-                }
-
-                this.serialPort.drain(async (drainError) => {
-                    if (drainError) {
-                        this.server.log([this.moduleName, 'error'], `Serial port drain error: ${drainError.message}`);
-
-                        return reject(drainError);
+                        return reject(writeError);
                     }
 
-                    return resolve();
+                    this.serialPort.drain(async (drainError) => {
+                        if (drainError) {
+                            this.server.log([this.moduleName, 'error'], `Serial port drain error: ${drainError.message}`);
+
+                            return reject(drainError);
+                        }
+
+                        return resolve();
+                    });
                 });
             });
-        });
+        }
+        catch (ex) {
+            this.server.log([ModuleName, 'error'], `Serial port write error: ${ex.message}`);
+        }
     }
 }

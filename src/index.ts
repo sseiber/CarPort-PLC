@@ -56,18 +56,16 @@ const composeOptions: ComposeOptions = {
 
 async function start() {
     try {
-        const storageRoot = process.env.CARPORT_SERVICE_STORAGE
-            ? pathResolve(__dirname, '..', process.env.CARPORT_SERVICE_STORAGE)
+        const storageRoot = process.env.CARPORT_PLC_STORAGE
+            ? pathResolve(__dirname, '..', process.env.CARPORT_PLC_STORAGE)
             : '/rpi-gd/data';
 
-        const garageDoorControllerConfig = fse.readJsonSync(pathResolve(storageRoot, 'garageControllerConfig.json'));
+        const garageDoorControllerConfig = fse.readJsonSync(pathResolve(storageRoot, 'garageDoorControllerConfig.json'));
         if (!Array.isArray(garageDoorControllerConfig)) {
             throw new Error('Error: Invalid CarPort garage door configuration detected');
         }
 
-        const opcuaServerConfig = fse.readJSONSync(pathResolve(storageRoot, 'opcuaServerConfig.json'));
-
-        const server = await compose(manifest(garageDoorControllerConfig, opcuaServerConfig.serverConfig, opcuaServerConfig.assetRootConfig), composeOptions);
+        const server = await compose(manifest(garageDoorControllerConfig), composeOptions);
 
         const stopServer = async () => {
             server.log(['shutdown', 'info'], '☮︎ Stopping hapi server');

@@ -22,7 +22,7 @@
             ],
             "env": {
                 "PORT": "9092",
-                "CARPORT_SERVICE_STORAGE": "storage"
+                "CARPORT_PLC_STORAGE": "storage"
             }
         }
     ]

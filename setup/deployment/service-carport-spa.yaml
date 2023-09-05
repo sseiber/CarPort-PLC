@@ -27,13 +27,13 @@ spec:
           privileged: true
       imagePullSecrets:
       - name: rpi-gd-acr-access
+      restartPolicy: Always
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: carport-server-service
 spec:
-  type: NodePort
   selector:
     app: carport-api-server
   ports:
@@ -41,5 +41,40 @@ spec:
     protocol: TCP
     port: 9092
     targetPort: 9092
+---
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: carport-client-deployment
+# spec:
+#   selector:
+#     matchLabels:
+#       app: carport-client
+#   template:
+#     metadata:
+#       labels:
+#         app: carport-client
+#     spec:
+#       containers:
+#       - name: carport-client
+#         image: iotccrscotts.azurecr.io/carport-plc-client:3.2.0-arm64v8
+#         ports:
+#         - containerPort: 80
+#       imagePullSecrets:
+#       - name: rpi-gd-acr-access
+#       restartPolicy: Always
+# ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: carport-client-service
+spec:
+  type: NodePort
+  selector:
+    app: carport-client
+  ports:
+  - name: carport-client
+    port: 80
+    targetPort: 80
+    protocol: TCP
     nodePort: 31000
-
