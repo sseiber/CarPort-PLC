@@ -2,16 +2,28 @@ export interface ICarPortConfig {
     garageDoorControllerConfigs: IGarageDoorControllerConfig[];
 }
 
+export interface IMotionModelConfig {
+    maxSlope: number;
+    jitterSlope: number;
+}
+
+export interface ITFLunaConfig {
+    closedLimit: number;
+    openLimit: number;
+    serialPort: string;
+    baudRate: number;
+    sampleRate: number;
+    serialParseLog: boolean;
+}
+
 export interface IGarageDoorControllerConfig {
     actuatorPin: number;
     downStatePin: number;
     upStatePin: number;
     actuatorPulseDurationMs: number;
     doorCheckDelaySec: number;
-    tfLunaSerialPort: string;
-    tfLunaBuadRate: number;
-    tfLunaSampleRate: number;
-    tfLunaSerialParserLog: boolean;
+    motionModelConfig: IMotionModelConfig;
+    tfLunaConfig: ITFLunaConfig;
 }
 
 export const enum GPIOState {
@@ -108,4 +120,5 @@ export interface ITFLunaMeasureResponse extends ITFLunaResponse {
     distCm: number;
     amp: number;
     tempC: string;
+    sequence: number;
 }

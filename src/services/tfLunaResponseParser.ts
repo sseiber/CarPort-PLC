@@ -29,6 +29,7 @@ export interface TFLunaResponseOptions extends TransformOptions {
 export class TFLunaResponseParser extends Transform {
     private logEnabled: boolean;
     private buffer: Buffer;
+    private measurementSequence = 0;
 
     constructor({ logEnabled, ...options }: TFLunaResponseOptions) {
         super(options);
@@ -171,7 +172,8 @@ export class TFLunaResponseParser extends Transform {
             commandId,
             distCm,
             amp,
-            tempC: tempC.toString()
+            tempC: tempC.toString(),
+            sequence: this.measurementSequence++
         };
     }
 

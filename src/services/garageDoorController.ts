@@ -25,8 +25,9 @@ import {
     TFLunaMeasurementCommand
 } from '../models/carportTypes';
 import { SerialPort } from 'serialport';
-import { TFLunaResponseParser } from './tfLunaResponseParser';
 import { version, Chip, Line, available } from 'node-libgpiod';
+import { MotionModel } from './motionModel';
+import { TFLunaResponseParser } from './tfLunaResponseParser';
 import { sleep } from '../utils';
 
 const ModuleName = 'GarageDoorController';
@@ -43,6 +44,8 @@ export class GarageDoorController {
     private upState: Line;
 
     private garageDoorControllerConfig: IGarageDoorControllerConfig;
+    private motionModel: MotionModel;
+    private motion = 'static';
     private serialPort: SerialPort;
     private tfLunaResponseParser: TFLunaResponseParser;
     private tfLunaStatus: ITFLunaStatus;
@@ -84,7 +87,24 @@ export class GarageDoorController {
             this.upState = new Line(this.bcm2835, this.garageDoorControllerConfig.upStatePin);
             this.upState.requestInputMode();
 
-            this.serialPort = await this.openPort(this.garageDoorControllerConfig.tfLunaSerialPort, this.garageDoorControllerConfig.tfLunaBuadRate);
+            this.motionModel = new MotionModel(
+                this.garageDoorControllerConfig.tfLunaConfig.closedLimit,
+                this.garageDoorControllerConfig.tfLunaConfig.openLimit,
+                this.garageDoorControllerConfig.motionModelConfig.maxSlope,
+                this.garageDoorControllerConfig.motionModelConfig.jitterSlope
+            );
+            setInterval(() => {
+                const motion = this.motionModel.motion;
+                if (this.motion !== motion) {
+                    this.motion = motion;
+
+                    this.server.log([this.moduleName, 'info'], `Motion change: ${this.motion}`);
+                }
+            }, 1000);
+
+            this.server.log([ModuleName, 'info'], `baudRate: ${this.garageDoorControllerConfig.tfLunaConfig.baudRate}`);
+
+            this.serialPort = await this.openPort(this.garageDoorControllerConfig.tfLunaConfig.serialPort, this.garageDoorControllerConfig.tfLunaConfig.baudRate);
 
             // await this.restoreTFLunaSettings();
 
@@ -106,7 +126,7 @@ export class GarageDoorController {
         this.server.log([this.moduleName, 'info'], `startTFLunaMeasurement start`);
 
         try {
-            await this.setTFLunaSampleRate(this.garageDoorControllerConfig.tfLunaSampleRate);
+            await this.setTFLunaSampleRate(this.garageDoorControllerConfig.tfLunaConfig.sampleRate);
         }
         catch (ex) {
             this.server.log([this.moduleName, 'error'], `Error during start measurement: ${ex.message}`);
@@ -285,11 +305,13 @@ export class GarageDoorController {
                     this.server.log([this.moduleName, 'info'], `Get current version response: ${this.tfLunaStatus.version}`);
                     break;
 
-                case TFLunaMeasurementCommand:
-                    this.tfLunaStatus.measurement = (data as ITFLunaMeasureResponse).distCm;
+                case TFLunaMeasurementCommand: {
+                    const tfLunaResponse = (data as ITFLunaMeasureResponse);
+                    this.tfLunaStatus.measurement = tfLunaResponse.distCm;
+                    this.motionModel.input([tfLunaResponse.sequence, tfLunaResponse.distCm]);
 
-                    this.server.log([this.moduleName, 'info'], `Get measurement response: ${this.tfLunaStatus.measurement}`);
                     break;
+                }
 
                 default:
                     this.server.log([this.moduleName, 'debug'], `Unknown response command: ${commandId}`);
@@ -315,7 +337,7 @@ export class GarageDoorController {
         port.on('close', this.portClosed.bind(this));
 
         this.tfLunaResponseParser = port.pipe(new TFLunaResponseParser({
-            logEnabled: this.garageDoorControllerConfig.tfLunaSerialParserLog,
+            logEnabled: this.garageDoorControllerConfig.tfLunaConfig.serialParseLog,
             objectMode: true,
             highWaterMark: 1000
         }));
