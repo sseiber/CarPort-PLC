@@ -1,6 +1,8 @@
 import { service, inject } from 'spryly';
 import { Server } from '@hapi/hapi';
 import {
+    IObserveRequest,
+    IObserveResponse,
     GarageDoorStatus,
     GarageDoorAction,
     ICarPortServiceRequest,
@@ -26,6 +28,33 @@ export class CarPortService {
         catch (ex) {
             this.server.log([ModuleName, 'error'], `An error occurred initializing the garage door controller: ${ex.message}`);
         }
+    }
+
+    public async observe(observeRequest: IObserveRequest): Promise<IObserveResponse> {
+        const response: IObserveResponse = {
+            succeeded: true,
+            message: 'The request succeeded',
+            status: 'OK'
+        };
+
+        this.server.log([ModuleName, 'info'], `Carport request for garageDoorId ${observeRequest.garageDoorId}, targets:\n${JSON.stringify(observeRequest.observeTargets, null, 4)})}`);
+
+        try {
+            let message;
+
+            response.status = await this.garageDoorControllers[observeRequest.garageDoorId].observe(observeRequest.observeTargets);
+            response.message = message || `Carport request for garageDoorId ${observeRequest.garageDoorId} was processed with status ${response.status}`;
+
+            this.server.log([ModuleName, 'info'], response.message);
+        }
+        catch (ex) {
+            response.succeeded = false;
+            response.message = `Carport request for garageDoorId ${observeRequest.garageDoorId} failed with exception: ${ex.message}`;
+
+            this.server.log([ModuleName, 'error'], response.message);
+        }
+
+        return response;
     }
 
     public async control(controlRequest: ICarPortServiceRequest): Promise<ICarPortServiceResponse> {
@@ -57,7 +86,7 @@ export class CarPortService {
                     response.status = await this.garageDoorControllers[controlRequest.garageDoorId].check();
                     break;
 
-                case GarageDoorAction.StartMeasurment:
+                case GarageDoorAction.StartMeasurement:
                     await this.garageDoorControllers[controlRequest.garageDoorId].startTFLunaMeasurement();
                     response.message = `Garage door distance measurement started...`;
                     break;

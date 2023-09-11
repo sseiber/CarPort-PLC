@@ -1,3 +1,29 @@
+export enum ObserveTarget {
+    Measurements = 'measurements',
+    ParserCommandResponse = 'parserCommandResponse'
+}
+
+export interface ActiveObserveTargets {
+    [ObserveTarget.Measurements]: boolean;
+    [ObserveTarget.ParserCommandResponse]: boolean;
+}
+
+export const ActiveObserveTargetsDefaults = {
+    [ObserveTarget.Measurements]: false,
+    [ObserveTarget.ParserCommandResponse]: false
+};
+
+export interface IObserveRequest {
+    garageDoorId: GarageDoorId;
+    observeTargets: ActiveObserveTargets;
+}
+
+export interface IObserveResponse {
+    succeeded: boolean;
+    message: string;
+    status: string;
+}
+
 export interface ICarPortConfig {
     garageDoorControllerConfigs: IGarageDoorControllerConfig[];
 }
@@ -52,7 +78,7 @@ export enum GarageDoorAction {
     Open = 'open',
     Close = 'close',
     Check = 'check',
-    StartMeasurment = 'startMeasurement',
+    StartMeasurement = 'startMeasurement',
     StopMeasurement = 'stopMeasurement',
     GetMeasurement = 'getMeasurement'
 }
@@ -120,5 +146,5 @@ export interface ITFLunaMeasureResponse extends ITFLunaResponse {
     distCm: number;
     amp: number;
     tempC: string;
-    sequence: number;
+    seq: number;
 }

@@ -1,5 +1,8 @@
 import { Server } from '@hapi/hapi';
 import {
+    ObserveTarget,
+    ActiveObserveTargets,
+    ActiveObserveTargetsDefaults,
     IGarageDoorControllerConfig,
     GPIOState,
     GarageDoorStatus,
@@ -34,6 +37,7 @@ const ModuleName = 'GarageDoorController';
 
 export class GarageDoorController {
     private server: Server;
+    private activeObserveTargets: ActiveObserveTargets;
     private moduleName: string;
     private garageDoorId: number;
 
@@ -52,6 +56,9 @@ export class GarageDoorController {
 
     constructor(server: Server, garageDoorId: number, garageDoorControllerConfig: IGarageDoorControllerConfig) {
         this.server = server;
+        this.activeObserveTargets = {
+            ...ActiveObserveTargetsDefaults
+        };
         this.moduleName = `${ModuleName}-${garageDoorId}`;
         this.garageDoorId = garageDoorId;
         this.garageDoorControllerConfig = garageDoorControllerConfig;
@@ -120,6 +127,16 @@ export class GarageDoorController {
         catch (ex) {
             this.server.log([this.moduleName, 'error'], `Error during init: ${ex.message}`);
         }
+    }
+
+    public async observe(observeTargets: ActiveObserveTargets): Promise<string> {
+        this.activeObserveTargets = {
+            ...observeTargets
+        };
+
+        this.tfLunaResponseParser.observe(this.activeObserveTargets);
+
+        return 'OK';
     }
 
     public async startTFLunaMeasurement(): Promise<void> {
@@ -308,7 +325,11 @@ export class GarageDoorController {
                 case TFLunaMeasurementCommand: {
                     const tfLunaResponse = (data as ITFLunaMeasureResponse);
                     this.tfLunaStatus.measurement = tfLunaResponse.distCm;
-                    this.motionModel.input([tfLunaResponse.sequence, tfLunaResponse.distCm]);
+                    this.motionModel.input([tfLunaResponse.seq, tfLunaResponse.distCm]);
+
+                    if (this.activeObserveTargets[ObserveTarget.Measurements]) {
+                        this.server.log([this.moduleName, 'info'], `Measurement: ${this.tfLunaStatus.measurement}, motion: ${this.motion}`);
+                    }
 
                     break;
                 }
@@ -337,7 +358,7 @@ export class GarageDoorController {
         port.on('close', this.portClosed.bind(this));
 
         this.tfLunaResponseParser = port.pipe(new TFLunaResponseParser({
-            logEnabled: this.garageDoorControllerConfig.tfLunaConfig.serialParseLog,
+            garageDoorId: this.garageDoorId,
             objectMode: true,
             highWaterMark: 1000
         }));

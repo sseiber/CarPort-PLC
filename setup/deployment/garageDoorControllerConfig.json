@@ -3,23 +3,37 @@
         "actuatorPin": 16,
         "downStatePin": 6,
         "upStatePin": 3,
-        "buttonContactTimeMs": 300,
+        "actuatorPulseDurationMs": 300,
         "doorCheckDelaySec": 20,
-        "tfLunaSerialPort": "/dev/ttyAMA0",
-        "tfLunaBuadRate": 115200,
-        "tfLunaSampleRate": 2,
-        "tfLunaSerialParserLog": false
+        "motionModelConfig": {
+            "maxSlope": 25,
+            "jitterSlope": 0.4
+        },
+        "tfLunaConfig": {
+            "closedLimit": 328,
+            "openLimit": 85,
+            "serialPort": "/dev/ttyAMA0",
+            "baudRate": 115200,
+            "sampleRate": 2
+        }
     },
     {
         "actuatorPin": 18,
         "downStatePin": 7,
         "upStatePin": 4,
-        "buttonContactTimeMs": 300,
+        "actuatorPulseDurationMs": 300,
         "doorCheckDelaySec": 20,
-        "tfLunaSerialPort": "/dev/ttyAMA1",
-        "tfLunaBuadRate": 115200,
-        "tfLunaSampleRate": 2,
-        "tfLunaSerialParserLog": false
+        "motionModelConfig": {
+            "maxSlope": 25,
+            "jitterSlope": 0.4
+        },
+        "tfLunaConfig": {
+            "closedLimit": 328,
+            "openLimit": 85,
+            "serialPort": "/dev/ttyAMA1",
+            "baudRate": 115200,
+            "sampleRate": 2
+        }
     },
     {
         "actuatorPin": 19,
@@ -27,9 +41,16 @@
         "upStatePin": 5,
         "buttonContactTimeMs": 300,
         "doorCheckDelaySec": 20,
-        "tfLunaSerialPort": "/dev/ttyAMA2",
-        "tfLunaBuadRate": 115200,
-        "tfLunaSampleRate": 2,
-        "tfLunaSerialParserLog": false
+        "motionModelConfig": {
+            "maxSlope": 25,
+            "jitterSlope": 0.4
+        },
+        "tfLunaConfig": {
+            "closedLimit": 328,
+            "openLimit": 85,
+            "serialPort": "/dev/ttyAMA2",
+            "baudRate": 115200,
+            "sampleRate": 2
+        }
     }
 ]
