@@ -109,11 +109,13 @@ export const TFLunaRestoreDefaultSettingsCommand = 0x10;
 export const TFLunaRestoreDefaultSettingsPrefix = [0x5A, 0x04, TFLunaRestoreDefaultSettingsCommand];
 export const TFLunaSaveCurrentSettingsCommand = 0x11;
 export const TFLunaSaveCurrentSettingsPrefix = [0x5A, 0x04, TFLunaSaveCurrentSettingsCommand];
+export const TFLunaSoftResetCommand = 0x02;
+export const TFLunaSoftResetPrefix = [0x5A, 0x04, TFLunaSoftResetCommand];
 export const TFLunaSetBaudRateCommand = 0x06;
 export const TFLunaSetBaudRatePrefix = [0x5A, 0x08, TFLunaSetBaudRateCommand];
 export const TFLunaSetSampleRateCommand = 0x03;
 export const TFLunaSetSampleRatePrefix = [0x5A, 0x06, TFLunaSetSampleRateCommand];
-export const TFLunaGetVersionCommand = 0x14;
+export const TFLunaGetVersionCommand = 0x01;
 export const TFLunaGetVersionPrefix = [0x5A, 0x04, TFLunaGetVersionCommand];
 export const TFLunaMeasurementCommand = 0x04;
 export const TFLunaMeasurementPrefix = [0x5A, 0x04, TFLunaMeasurementCommand];
@@ -127,6 +129,10 @@ export interface ITFLunaRestoreDefaultSettingsResponse extends ITFLunaResponse {
 }
 
 export interface ITFLunaSaveCurrentSettingsResponse extends ITFLunaResponse {
+    status: number;
+}
+
+export interface ITFLunaSoftResetResponse extends ITFLunaResponse {
     status: number;
 }
 

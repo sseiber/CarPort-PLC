@@ -25,7 +25,8 @@ import {
     ITFLunaSampleRateResponse,
     ITFLunaVersionResponse,
     ITFLunaMeasureResponse,
-    TFLunaMeasurementCommand
+    TFLunaMeasurementCommand,
+    TFLunaSoftResetPrefix
 } from '../models/carportTypes';
 import { SerialPort } from 'serialport';
 import { version, Chip, Line, available } from 'node-libgpiod';
@@ -109,11 +110,11 @@ export class GarageDoorController {
                 }
             }, 1000);
 
-            this.server.log([ModuleName, 'info'], `baudRate: ${this.garageDoorControllerConfig.tfLunaConfig.baudRate}`);
-
             this.serialPort = await this.openPort(this.garageDoorControllerConfig.tfLunaConfig.serialPort, this.garageDoorControllerConfig.tfLunaConfig.baudRate);
 
             // await this.restoreTFLunaSettings();
+
+            await this.resetTFLuna();
 
             await this.setTFLunaBaudRate();
 
@@ -295,31 +296,31 @@ export class GarageDoorController {
                 case TFLunaRestoreDefaultSettingsCommand:
                     this.tfLunaStatus.restoreDefaultSettingsStatus = (data as ITFLunaRestoreDefaultSettingsResponse).status;
 
-                    this.server.log([this.moduleName, 'info'], `Restore default settings response status: ${this.tfLunaStatus.restoreDefaultSettingsStatus}`);
+                    this.server.log([this.moduleName, 'info'], `Response: restore default settings: ${this.tfLunaStatus.restoreDefaultSettingsStatus}`);
                     break;
 
                 case TFLunaSaveCurrentSettingsCommand:
                     this.tfLunaStatus.saveCurrentSettingsStatus = (data as ITFLunaSaveCurrentSettingsResponse).status;
 
-                    this.server.log([this.moduleName, 'info'], `Save current settings response status: ${this.tfLunaStatus.saveCurrentSettingsStatus}`);
+                    this.server.log([this.moduleName, 'info'], `Response: save current settings: ${this.tfLunaStatus.saveCurrentSettingsStatus}`);
                     break;
 
                 case TFLunaSetBaudRateCommand:
                     this.tfLunaStatus.baudRate = (data as ITFLunaBaudResponse).baudRate;
 
-                    this.server.log([this.moduleName, 'info'], `Current baudRate: ${this.tfLunaStatus.baudRate}`);
+                    this.server.log([this.moduleName, 'info'], `Response: current baudRate: ${this.tfLunaStatus.baudRate}`);
                     break;
 
                 case TFLunaSetSampleRateCommand:
                     this.tfLunaStatus.sampleRate = (data as ITFLunaSampleRateResponse).sampleRate;
 
-                    this.server.log([this.moduleName, 'info'], `Set sample rate response: ${this.tfLunaStatus.sampleRate}`);
+                    this.server.log([this.moduleName, 'info'], `Response: set sample rate: ${this.tfLunaStatus.sampleRate}`);
                     break;
 
                 case TFLunaGetVersionCommand:
                     this.tfLunaStatus.version = (data as ITFLunaVersionResponse).version;
 
-                    this.server.log([this.moduleName, 'info'], `Get current version response: ${this.tfLunaStatus.version}`);
+                    this.server.log([this.moduleName, 'info'], `Response: get current version: ${this.tfLunaStatus.version}`);
                     break;
 
                 case TFLunaMeasurementCommand: {
@@ -328,19 +329,19 @@ export class GarageDoorController {
                     this.motionModel.input([tfLunaResponse.seq, tfLunaResponse.distCm]);
 
                     if (this.activeObserveTargets[ObserveTarget.Measurements]) {
-                        this.server.log([this.moduleName, 'info'], `Measurement: ${this.tfLunaStatus.measurement}, motion: ${this.motion}`);
+                        this.server.log([this.moduleName, 'info'], `Response: measurement: ${this.tfLunaStatus.measurement}, motion: ${this.motion}`);
                     }
 
                     break;
                 }
 
                 default:
-                    this.server.log([this.moduleName, 'debug'], `Unknown response command: ${commandId}`);
+                    this.server.log([this.moduleName, 'debug'], `Response: unknown response: ${commandId}`);
                     break;
             }
         }
         else {
-            this.server.log([this.moduleName, 'error'], `Received unknown response data...`);
+            this.server.log([this.moduleName, 'error'], `Response: received unknown response data...`);
         }
     }
 
@@ -380,12 +381,24 @@ export class GarageDoorController {
         this.server.log([this.moduleName, 'info'], `Restore default settings`);
 
         await this.writeTFLunaCommand(Buffer.from(TFLunaRestoreDefaultSettingsPrefix.concat([0x00])));
+
+        await sleep(2000);
     }
 
     private async saveTFLunaSettings(): Promise<void> {
-        this.server.log([this.moduleName, 'info'], `Save current settings settings`);
+        this.server.log([this.moduleName, 'info'], `Save current settings`);
 
         await this.writeTFLunaCommand(Buffer.from(TFLunaSaveCurrentSettingsPrefix.concat([0x00])));
+
+        await sleep(2000);
+    }
+
+    private async resetTFLuna(): Promise<void> {
+        this.server.log([this.moduleName, 'info'], `Soft reset`);
+
+        await this.writeTFLunaCommand(Buffer.from(TFLunaSoftResetPrefix.concat([0x00])));
+
+        await sleep(5000);
     }
 
     private async setTFLunaBaudRate(baudRate = 115200): Promise<void> {
@@ -399,18 +412,24 @@ export class GarageDoorController {
         /* eslint-enable no-bitwise */
 
         await this.writeTFLunaCommand(Buffer.from(TFLunaSetBaudRatePrefix.concat([data1, data2, data3, data4, 0x00])));
+
+        await sleep(2000);
     }
 
     private async setTFLunaSampleRate(sampleRate: number): Promise<void> {
         this.server.log([this.moduleName, 'info'], `Set sample rate request with value: ${sampleRate}`);
 
         await this.writeTFLunaCommand(Buffer.from(TFLunaSetSampleRatePrefix.concat([sampleRate, 0x00, 0x00])));
+
+        await sleep(2000);
     }
 
     private async getTFLunaVersion(): Promise<void> {
         this.server.log([this.moduleName, 'info'], `Get version request`);
 
         await this.writeTFLunaCommand(Buffer.from(TFLunaGetVersionPrefix.concat([0x00])));
+
+        await sleep(2000);
     }
 
     private async writeTFLunaCommand(writeData: Buffer): Promise<void> {

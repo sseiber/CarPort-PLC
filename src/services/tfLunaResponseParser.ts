@@ -11,12 +11,14 @@ import {
     TFLunaMeasureHeader,
     TFLunaRestoreDefaultSettingsCommand,
     TFLunaSaveCurrentSettingsCommand,
+    TFLunaSoftResetCommand,
     TFLunaSetBaudRateCommand,
     TFLunaSetSampleRateCommand,
     TFLunaGetVersionCommand,
     TFLunaMeasurementCommand,
     ITFLunaRestoreDefaultSettingsResponse,
     ITFLunaSaveCurrentSettingsResponse,
+    ITFLunaSoftResetResponse,
     ITFLunaBaudResponse,
     ITFLunaSampleRateResponse,
     ITFLunaMeasureResponse,
@@ -81,6 +83,10 @@ export class TFLunaResponseParser extends Transform {
                         tfResponse = this.parseSaveCurrentSettingsResponse(commandId, data);
                         break;
 
+                    case TFLunaSoftResetCommand:
+                        tfResponse = this.parseSoftResetResponse(commandId, data);
+                        break;
+
                     case TFLunaSetBaudRateCommand:
                         tfResponse = this.parseSetBaudRateResponse(commandId, data);
                         break;
@@ -128,20 +134,35 @@ export class TFLunaResponseParser extends Transform {
     }
 
     private parseRestoreDefaultSettingsResponse(commandId: number, data: Buffer): ITFLunaRestoreDefaultSettingsResponse {
-        this.tfLog([this.moduleName, 'debug'], `Restore default settings status: ${data.readUInt8(3)}`);
+        const status = data.readUInt8(3);
+
+        this.tfLog([this.moduleName, 'debug'], `Restore default settings status: ${status}`);
 
         return {
             commandId,
-            status: data.readUInt8(3)
+            status
         };
     }
 
     private parseSaveCurrentSettingsResponse(commandId: number, data: Buffer): ITFLunaSaveCurrentSettingsResponse {
-        this.tfLog([this.moduleName, 'debug'], `Save current settings status: ${data.readUInt8(3)}`);
+        const status = data.readUInt8(3);
+
+        this.tfLog([this.moduleName, 'debug'], `Save current settings status: ${status}`);
 
         return {
             commandId,
-            status: data.readUInt8(3)
+            status
+        };
+    }
+
+    private parseSoftResetResponse(commandId: number, data: Buffer): ITFLunaSoftResetResponse {
+        const status = data.readUInt8(3);
+
+        this.tfLog([this.moduleName, 'debug'], `Soft reset status: ${status}`);
+
+        return {
+            commandId,
+            status
         };
     }
 
@@ -158,16 +179,20 @@ export class TFLunaResponseParser extends Transform {
     }
 
     private parseSetSampleRateResponse(commandId: number, data: Buffer): ITFLunaSampleRateResponse {
-        this.tfLog([this.moduleName, 'debug'], `sampleRate: ${data.readUInt16BE(3)}`);
+        // eslint-disable-next-line no-bitwise
+        const sampleRate = (data.readUInt8(4) << 8) + data.readUInt8(3);
+
+        this.tfLog([this.moduleName, 'debug'], `sampleRate: ${sampleRate}`);
 
         return {
             commandId,
-            sampleRate: data.readUInt16BE(3)
+            sampleRate
         };
     }
 
     private parseGetVersionResponse(commandId: number, data: Buffer): ITFLunaVersionResponse {
-        const version = `${data.toString('utf8', 21, 23)}.${data.toString('utf8', 24, 26)}.${data.toString('utf8', 27, 29)}`;
+        // const version = `${data.toString('utf8', 21, 23)}.${data.toString('utf8', 24, 26)}.${data.toString('utf8', 27, 29)}`;
+        const version = `${data.readUInt8(3)}.${data.readUInt8(4)}.${data.readUInt8(5)}`;
 
         this.tfLog([this.moduleName, 'debug'], `vers: ${version}`);
 
