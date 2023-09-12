@@ -39,7 +39,7 @@
         "actuatorPin": 19,
         "downStatePin": 2,
         "upStatePin": 5,
-        "buttonContactTimeMs": 300,
+        "actuatorPulseDurationMs": 300,
         "doorCheckDelaySec": 20,
         "motionModelConfig": {
             "maxSlope": 25,
