@@ -15,6 +15,7 @@ import {
     TFLunaSetBaudRatePrefix,
     TFLunaSetSampleRateCommand,
     TFLunaSetSampleRatePrefix,
+    TFLunaSoftResetPrefix,
     TFLunaGetVersionCommand,
     TFLunaGetVersionPrefix,
     TFLunaMeasurementPrefix,
@@ -25,11 +26,15 @@ import {
     ITFLunaSampleRateResponse,
     ITFLunaVersionResponse,
     ITFLunaMeasureResponse,
-    TFLunaMeasurementCommand,
-    TFLunaSoftResetPrefix
+    TFLunaMeasurementCommand
 } from '../models/carportTypes';
 import { SerialPort } from 'serialport';
-import { version, Chip, Line, available } from 'node-libgpiod';
+import {
+    version as gpioVersion,
+    Chip,
+    Line,
+    available as gpioAvailable
+} from 'node-libgpiod';
 import { MotionModel } from './motionModel';
 import { TFLunaResponseParser } from './tfLunaResponseParser';
 import { sleep } from '../utils';
@@ -42,7 +47,6 @@ export class GarageDoorController {
     private moduleName: string;
     private garageDoorId: number;
 
-    private gpioAvailable: boolean;
     private bcm2835: Chip;
     private actuator: Line;
     private downState: Line;
@@ -74,13 +78,24 @@ export class GarageDoorController {
     }
 
     public async init(): Promise<void> {
-        this.server.log([this.moduleName, 'info'], `${ModuleName} initialzation: libgpiod version: ${version()}, status: ${available() ? 'available' : 'unavailable'}`);
+        this.server.log([this.moduleName, 'info'], `${ModuleName} initialization: libgpiod version: ${gpioVersion()}`);
 
         try {
-            this.gpioAvailable = available();
-            if (!this.gpioAvailable) {
+            // wait for up to 15 seconds for GPIO to become available.
+            // NOTE:
+            // this is a mitigation for the kubelet orchestrator which may have not finished
+            // terminating a previous version of the container before starting this new instance.
+            for (let initCount = 0; initCount < 5 && !gpioAvailable(); initCount++) {
+                this.server.log([ModuleName, 'info'], `${ModuleName} gpio is not available, check 1/${initCount + 1}...`);
+
+                await sleep(3000);
+            }
+
+            if (!gpioAvailable()) {
                 throw new Error('GPIO is not available');
             }
+
+            this.server.log([this.moduleName, 'info'], `${ModuleName} libgpiod is available`);
 
             this.bcm2835 = new Chip(0);
 
@@ -175,7 +190,7 @@ export class GarageDoorController {
         let status = GarageDoorStatus.Unknown;
 
         try {
-            if (this.gpioAvailable) {
+            if (gpioAvailable()) {
                 await this.actuateGarageDoor();
 
                 status = GarageDoorStatus.Unknown;
@@ -196,7 +211,7 @@ export class GarageDoorController {
         let status = GarageDoorStatus.Unknown;
 
         try {
-            if (this.gpioAvailable) {
+            if (gpioAvailable()) {
                 await this.actuateGarageDoor();
 
                 status = GarageDoorStatus.Unknown;
@@ -217,7 +232,7 @@ export class GarageDoorController {
         let status = GarageDoorStatus.Unknown;
 
         try {
-            if (this.gpioAvailable) {
+            if (gpioAvailable()) {
                 await this.actuateGarageDoor();
 
                 status = GarageDoorStatus.Unknown;
@@ -237,7 +252,7 @@ export class GarageDoorController {
         let status = GarageDoorStatus.Unknown;
 
         try {
-            if (this.gpioAvailable) {
+            if (gpioAvailable()) {
                 this.server.log([this.moduleName, 'info'], `Reading GPIO value`);
 
                 const valueDown = this.downState.getValue();
