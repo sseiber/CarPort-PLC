@@ -1,6 +1,6 @@
 {
     "name": "carport-service",
-    "version": "3.2.18",
+    "version": "3.2.19",
     "description": "Car Port garage door controller service",
     "main": "index.js",
     "scripts": {
