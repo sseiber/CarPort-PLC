@@ -1,0 +1,39 @@
+{
+  "$id": "ITFLunaConfig",
+  "$ref": "#/definitions/ITFLunaConfig",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "ITFLunaConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "baudRate": {
+          "type": "number"
+        },
+        "closedLimit": {
+          "type": "number"
+        },
+        "openLimit": {
+          "type": "number"
+        },
+        "sampleRate": {
+          "type": "number"
+        },
+        "serialParseLog": {
+          "type": "boolean"
+        },
+        "serialPort": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "closedLimit",
+        "openLimit",
+        "serialPort",
+        "baudRate",
+        "sampleRate",
+        "serialParseLog"
+      ],
+      "type": "object"
+    }
+  }
+}

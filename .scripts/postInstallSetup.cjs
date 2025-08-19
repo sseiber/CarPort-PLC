@@ -9,7 +9,6 @@ const programArgs = new Command()
 const programOptions = programArgs.opts();
 
 function log(message) {
-    // eslint-disable-next-line no-console
     console.log(message);
 }
 
@@ -26,8 +25,18 @@ function start() {
         log(`Creating workspace environment: ${path.resolve(rootFolderPath)}`);
         log(`Platform: ${os.type}`);
 
-        const srcFolderPath = path.resolve(rootFolderPath, `setup`, `installAssets`);
-        const dstFolderPath = path.resolve(rootFolderPath, `configs`);
+        let srcFolderPath = path.resolve(rootFolderPath, `setup`, `installAssets`, `configs`);
+        let dstFolderPath = path.resolve(rootFolderPath, `configs`);
+
+        if (!fse.pathExistsSync(dstFolderPath)) {
+
+            // fse.ensureDirSync(dstFolderPath);
+
+            fse.copySync(srcFolderPath, dstFolderPath);
+        }
+
+        srcFolderPath = path.resolve(rootFolderPath, `setup`, `installAssets`, `vscode`);
+        dstFolderPath = path.resolve(rootFolderPath, `.vscode`);
 
         if (!fse.pathExistsSync(dstFolderPath)) {
 

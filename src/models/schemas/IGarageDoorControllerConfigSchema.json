@@ -1,0 +1,91 @@
+{
+  "$id": "IGarageDoorControllerConfig",
+  "$ref": "#/definitions/IGarageDoorControllerConfig",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "IGarageDoorControllerConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "actuatorPin": {
+          "type": "number"
+        },
+        "actuatorPulseDurationMs": {
+          "type": "number"
+        },
+        "doorCheckDelaySec": {
+          "type": "number"
+        },
+        "downStatePin": {
+          "type": "number"
+        },
+        "motionModelConfig": {
+          "$ref": "#/definitions/IMotionModelConfig"
+        },
+        "tfLunaConfig": {
+          "$ref": "#/definitions/ITFLunaConfig"
+        },
+        "upStatePin": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "actuatorPin",
+        "downStatePin",
+        "upStatePin",
+        "actuatorPulseDurationMs",
+        "doorCheckDelaySec",
+        "motionModelConfig",
+        "tfLunaConfig"
+      ],
+      "type": "object"
+    },
+    "IMotionModelConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "jitterSlope": {
+          "type": "number"
+        },
+        "maxSlope": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "maxSlope",
+        "jitterSlope"
+      ],
+      "type": "object"
+    },
+    "ITFLunaConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "baudRate": {
+          "type": "number"
+        },
+        "closedLimit": {
+          "type": "number"
+        },
+        "openLimit": {
+          "type": "number"
+        },
+        "sampleRate": {
+          "type": "number"
+        },
+        "serialParseLog": {
+          "type": "boolean"
+        },
+        "serialPort": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "closedLimit",
+        "openLimit",
+        "serialPort",
+        "baudRate",
+        "sampleRate",
+        "serialParseLog"
+      ],
+      "type": "object"
+    }
+  }
+}

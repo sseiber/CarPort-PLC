@@ -14,17 +14,11 @@ export const ActiveObserveTargetsDefaults = {
 };
 
 export interface IObserveRequest {
-    garageDoorId: GarageDoorId;
+    garageDoorId: number;
     observeTargets: ActiveObserveTargets;
 }
 
-export interface IObserveResponse {
-    succeeded: boolean;
-    message: string;
-    status: string;
-}
-
-export interface ICarPortConfig {
+export interface ICarportConfig {
     garageDoorControllerConfigs: IGarageDoorControllerConfig[];
 }
 
@@ -52,16 +46,12 @@ export interface IGarageDoorControllerConfig {
     tfLunaConfig: ITFLunaConfig;
 }
 
-export const enum GPIOState {
-    LOW = 0,
-    HIGH = 1
-}
+export const LowGpioState = 0;
+export const HighGpioState = 1;
 
-export enum GarageDoorId {
-    GarageDoor1 = 0,
-    GarageDoor2 = 1,
-    GarageDoor3 = 2
-}
+export const GarageDoorId1 = 0;
+export const GarageDoorId2 = 1;
+export const GarageDoorId3 = 2;
 
 export enum GarageDoorStatus {
     Unknown = 'unknown',
@@ -83,15 +73,9 @@ export enum GarageDoorAction {
     GetMeasurement = 'getMeasurement'
 }
 
-export interface ICarPortServiceRequest {
-    garageDoorId: GarageDoorId;
+export interface ICarportServiceRequest {
+    garageDoorId: number;
     action: GarageDoorAction;
-}
-
-export interface ICarPortServiceResponse {
-    succeeded: boolean;
-    message: string;
-    status: GarageDoorStatus;
 }
 
 export interface ITFLunaStatus {
@@ -153,4 +137,21 @@ export interface ITFLunaMeasureResponse extends ITFLunaResponse {
     amp: number;
     tempC: string;
     seq: number;
+}
+
+export interface IServiceResponse {
+    succeeded: boolean;
+    statusCode: number;
+    message: string;
+    data?: any;
+}
+
+export interface IServiceErrorMessage {
+    message: string;
+}
+
+export interface IServiceReply {
+    '2xx': IServiceResponse;
+    '4xx': IServiceErrorMessage;
+    '5xx': IServiceErrorMessage;
 }

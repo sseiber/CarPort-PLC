@@ -23,7 +23,7 @@ import {
     ITFLunaSampleRateResponse,
     ITFLunaMeasureResponse,
     ITFLunaVersionResponse
-} from '../models/carportTypes';
+} from '../models/carportTypes.js';
 
 const ModuleName = 'TFLunaResponseParser';
 
@@ -59,10 +59,10 @@ export class TFLunaResponseParser extends Transform {
 
     public _transform(chunk: Buffer, _encoding: BufferEncoding, cb: TransformCallback): void {
         let data = Buffer.concat([this.buffer, chunk]);
-        let header;
-        let length;
-        let commandId;
-        let checksum;
+        let header: number;
+        let length = 0;
+        let commandId: number;
+        let checksum: number;
         let tfResponse: any = {};
 
         while (data.length >= 2) {
@@ -167,7 +167,6 @@ export class TFLunaResponseParser extends Transform {
     }
 
     private parseSetBaudRateResponse(commandId: number, data: Buffer): ITFLunaBaudResponse {
-        // eslint-disable-next-line no-bitwise
         const baudRate = ((data.readUInt8(6) << 24) + (data.readUInt8(5) << 16)) + ((data.readUInt8(4) << 8) + (data.readUInt8(3)));
 
         this.tfLog([this.moduleName, 'debug'], `baudRate: ${baudRate}`);
@@ -179,7 +178,6 @@ export class TFLunaResponseParser extends Transform {
     }
 
     private parseSetSampleRateResponse(commandId: number, data: Buffer): ITFLunaSampleRateResponse {
-        // eslint-disable-next-line no-bitwise
         const sampleRate = (data.readUInt8(4) << 8) + data.readUInt8(3);
 
         this.tfLog([this.moduleName, 'debug'], `sampleRate: ${sampleRate}`);

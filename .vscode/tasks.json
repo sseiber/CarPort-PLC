@@ -4,31 +4,16 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "type": "typescript",
-            "label": "build",
-            "tsconfig": "tsconfig.json",
-            "group": "build",
+            "label": "build-carport-plc",
+            "type": "shell",
+            "options": {
+                "cwd": "${workspaceFolder}/src"
+            },
+            "command": "node ${workspaceFolder}/node_modules/.bin/tsc -p .",
             "problemMatcher": [
                 "$tsc"
-            ]
-        },
-        {
-            "type": "typescript",
-            "label": "watch",
-            "isBackground": true,
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
-            "presentation": {
-                "panel": "new",
-                "reveal": "never"
-            },
-            "tsconfig": "tsconfig.json",
-            "option": "watch",
-            "problemMatcher": [
-                "$tsc-watch"
-            ]
+            ],
+            "group": "build"
         }
     ]
 }

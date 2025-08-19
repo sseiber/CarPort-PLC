@@ -1,28 +1,41 @@
 {
-    // Use IntelliSense to learn about possible Node.js debug attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Debug buildTypeSchemas.js",
+            "request": "launch",
+            "runtimeArgs": [
+                "run-script",
+                "build:schemas"
+            ],
+            "runtimeExecutable": "npm",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node"
+        },
+        {
+            "name": "Carport PLC",
             "type": "node",
             "request": "launch",
-            "name": "Launch Service",
-            "console": "integratedTerminal",
+            "preLaunchTask": "build-carport-plc",
             "program": "${workspaceFolder}/src/index.ts",
+            "console": "integratedTerminal",
             "smartStep": true,
             "showAsyncStacks": true,
             "sourceMaps": true,
-            "preLaunchTask": "${defaultBuildTask}",
+            "env": {
+                "NODE_ENV": "local",
+                "CARPORT_PLC_STORAGE": "storage"
+            },
             "outFiles": [
                 "${workspaceFolder}/dist/**/*.js"
             ],
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "env": {
-                "PORT": "9092",
-                "CARPORT_PLC_STORAGE": "storage"
+            "presentation": {
+                "group": "ts"
             }
         }
     ]

@@ -1,89 +1,121 @@
-import { service, inject } from 'spryly';
-import { Server } from '@hapi/hapi';
 import {
+    FastifyInstance,
+    FastifyPluginCallback,
+    HookHandlerDoneFunction
+} from 'fastify';
+import fp from 'fastify-plugin';
+import {
+    ICarportServiceRequest,
     IObserveRequest,
-    IObserveResponse,
-    GarageDoorStatus,
     GarageDoorAction,
-    ICarPortServiceRequest,
-    ICarPortServiceResponse
-} from '../models/carportTypes';
-import { GarageDoorController } from './garageDoorController';
+    GarageDoorId1,
+    GarageDoorStatus,
+    IServiceResponse
+} from '../models/index.js';
+import { exMessage } from '../utils/index.js';
+import { PluginName as ConfigPluginName } from '../plugins/config.js';
+import { GarageDoorController } from './garageDoorController.js';
 
-const ModuleName = 'carportService';
+export const ServiceName = 'carportService';
 
-@service(ModuleName)
-export class CarPortService {
-    @inject('$server')
-    private server: Server;
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface ICarportServicePluginOptions { }
 
+const carportServicePlugin: FastifyPluginCallback<ICarportServicePluginOptions> = (server: FastifyInstance, _options: ICarportServicePluginOptions, done: HookHandlerDoneFunction): void => {
+    server.log.info({ tags: [ServiceName] }, `Registering...`);
+
+    try {
+        const carportService = new CarportService(server);
+
+        server.decorate(ServiceName, carportService);
+    }
+    catch (ex) {
+        server.log.error({ tags: [ServiceName] }, `registering failed: ${exMessage(ex)}`);
+
+        return done(ex as Error);
+    }
+
+    return done();
+};
+
+class CarportService {
+    private server: FastifyInstance;
     private garageDoorControllers: GarageDoorController[];
 
+    constructor(server: FastifyInstance) {
+        this.server = server;
+        this.garageDoorControllers = [];
+    }
+
     public async init(): Promise<void> {
-        this.server.log([ModuleName, 'info'], `CarPortService initialzation`);
+        this.server.log.info({ tags: [ServiceName] }, `CarportService initialzation`);
 
         try {
             this.garageDoorControllers = await this.initializeGarageDoorControllers();
         }
         catch (ex) {
-            this.server.log([ModuleName, 'error'], `An error occurred initializing the garage door controller: ${ex.message}`);
+            this.server.log.error({ tags: [ServiceName] }, `An error occurred initializing the garage door controller: ${exMessage(ex)}`);
         }
     }
 
-    public async observe(observeRequest: IObserveRequest): Promise<IObserveResponse> {
-        const response: IObserveResponse = {
+    public observe(observeRequest: IObserveRequest): IServiceResponse {
+        const response: IServiceResponse = {
             succeeded: true,
-            message: 'The request succeeded',
-            status: 'OK'
+            statusCode: 201,
+            message: 'The request succeeded'
         };
 
-        this.server.log([ModuleName, 'info'], `Carport request for garageDoorId ${observeRequest.garageDoorId}, targets:\n${JSON.stringify(observeRequest.observeTargets, null, 4)})}`);
+        this.server.log.info({ tags: [ServiceName] }, `Carport request for garageDoorId ${observeRequest.garageDoorId}, targets:\n${JSON.stringify(observeRequest.observeTargets, null, 4)})}`);
 
         try {
             let message;
 
-            response.status = await this.garageDoorControllers[observeRequest.garageDoorId].observe(observeRequest.observeTargets);
-            response.message = message || `Carport request for garageDoorId ${observeRequest.garageDoorId} was processed with status ${response.status}`;
+            response.succeeded = this.garageDoorControllers[observeRequest.garageDoorId].observe(observeRequest.observeTargets);
+            response.message = message ?? `Carport request for garageDoorId ${observeRequest.garageDoorId} was processed.`;
 
-            this.server.log([ModuleName, 'info'], response.message);
+            this.server.log.info({ tags: [ServiceName] }, response.message);
         }
         catch (ex) {
             response.succeeded = false;
-            response.message = `Carport request for garageDoorId ${observeRequest.garageDoorId} failed with exception: ${ex.message}`;
+            response.message = `Carport request for garageDoorId ${observeRequest.garageDoorId} failed with exception: ${exMessage(ex)}`;
 
-            this.server.log([ModuleName, 'error'], response.message);
+            this.server.log.error({ tags: [ServiceName] }, response.message);
         }
 
         return response;
     }
 
-    public async control(controlRequest: ICarPortServiceRequest): Promise<ICarPortServiceResponse> {
-        const response: ICarPortServiceResponse = {
+    public async control(controlRequest: ICarportServiceRequest): Promise<IServiceResponse> {
+        const response: IServiceResponse = {
             succeeded: true,
+            statusCode: 201,
             message: 'The request succeeded',
-            status: GarageDoorStatus.Unknown
+            data: {
+                status: GarageDoorStatus.Unknown
+            }
         };
 
-        this.server.log([ModuleName, 'info'], `Carport request for garageDoorId ${controlRequest.garageDoorId}, action ${controlRequest.action} was received`);
+        this.server.log.info({ tags: [ServiceName] }, `Carport request for garageDoorId ${controlRequest.garageDoorId}, action ${controlRequest.action} was received`);
 
         try {
             let message;
+            let status = GarageDoorStatus.Unknown;
 
             switch (controlRequest.action) {
                 case GarageDoorAction.Actuate:
-                    response.status = await this.garageDoorControllers[controlRequest.garageDoorId].actuate();
+                    status = await this.garageDoorControllers[controlRequest.garageDoorId].actuate();
                     break;
 
                 case GarageDoorAction.Open:
-                    response.status = await this.garageDoorControllers[controlRequest.garageDoorId].open();
+                    status = await this.garageDoorControllers[controlRequest.garageDoorId].open();
                     break;
 
                 case GarageDoorAction.Close:
-                    response.status = await this.garageDoorControllers[controlRequest.garageDoorId].close();
+                    status = await this.garageDoorControllers[controlRequest.garageDoorId].close();
                     break;
 
                 case GarageDoorAction.Check:
-                    response.status = await this.garageDoorControllers[controlRequest.garageDoorId].check();
+                    status = this.garageDoorControllers[controlRequest.garageDoorId].check();
                     break;
 
                 case GarageDoorAction.StartMeasurement:
@@ -101,38 +133,43 @@ export class CarPortService {
                     break;
 
                 default:
-                    message = `Carport request for garageDoorId ${controlRequest.garageDoorId}, action ${controlRequest.action} is not recognized`;
+                    message = `Carport request for garageDoorId ${controlRequest.garageDoorId}, action ${String(controlRequest.action)} is not recognized`;
                     break;
             }
 
-            response.message = message || `Carport request for garageDoorId ${controlRequest.garageDoorId}, action ${controlRequest.action} was processed with status ${response.status}`;
+            response.message = message ?? `Carport request for garageDoorId ${controlRequest.garageDoorId}, action ${controlRequest.action} was processed with status ${status}`;
+            response.data = {
+                status
+            };
 
-            this.server.log([ModuleName, 'info'], response.message);
+            this.server.log.info({ tags: [ServiceName] }, response.message);
         }
         catch (ex) {
             response.succeeded = false;
-            response.message = `Carport request for garageDoorId ${controlRequest.garageDoorId}, action ${controlRequest.action} failed with exception: ${ex.message}`;
+            response.statusCode = 500;
+            response.message = `Carport request for garageDoorId ${controlRequest.garageDoorId}, action ${controlRequest.action} failed with exception: ${exMessage(ex)}`;
 
-            this.server.log([ModuleName, 'error'], response.message);
+            this.server.log.error({ tags: [ServiceName] }, response.message);
         }
 
         return response;
     }
 
     private async initializeGarageDoorControllers(): Promise<GarageDoorController[]> {
-        this.server.log([ModuleName, 'info'], `initializeGarageDoorControllers`);
+        this.server.log.info({ tags: [ServiceName] }, `initializeGarageDoorControllers`);
 
         const garageDoorControllers: GarageDoorController[] = [];
 
         try {
-            const garageDoorControllerConfigs = this.server.settings.app.carport.garageDoorControllerConfigs;
+            const garageDoorControllerConfigs = this.server.config.controllerConfigs;
 
-            this.server.log([ModuleName, 'info'], `Garage controller configuration:\n${JSON.stringify(garageDoorControllerConfigs)}\n`);
+            this.server.log.info({ tags: [ServiceName] }, `Garage controller configuration:\n${JSON.stringify(garageDoorControllerConfigs)}\n`);
 
-            this.server.log([ModuleName, 'info'], `Creating garage controllers`);
-            let garageDoorId = 0;
+            this.server.log.info({ tags: [ServiceName] }, `Creating garage controllers`);
+
+            let garageDoorId = GarageDoorId1;
             for (const garageDoorControllerConfig of garageDoorControllerConfigs) {
-                const garageDoorController = new GarageDoorController(this.server, garageDoorId++, garageDoorControllerConfig);
+                const garageDoorController = GarageDoorController.createGarageDoorController(this.server, garageDoorId++, garageDoorControllerConfig);
 
                 await garageDoorController.init();
 
@@ -140,9 +177,23 @@ export class CarPortService {
             }
         }
         catch (ex) {
-            this.server.log([ModuleName, 'error'], `An error occurred in initializeGarageDoorControllers: ${ex.message}`);
+            this.server.log.error({ tags: [ServiceName] }, `An error occurred in initializeGarageDoorControllers: ${exMessage(ex)}`);
         }
 
         return garageDoorControllers;
     }
 }
+
+declare module 'fastify' {
+    interface FastifyInstance {
+        [ServiceName]: CarportService;
+    }
+}
+
+export default fp(carportServicePlugin, {
+    fastify: '5.x',
+    name: ServiceName,
+    dependencies: [
+        ConfigPluginName
+    ]
+});

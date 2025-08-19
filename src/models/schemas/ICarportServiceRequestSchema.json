@@ -1,0 +1,35 @@
+{
+  "$id": "ICarportServiceRequest",
+  "$ref": "#/definitions/ICarportServiceRequest",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "GarageDoorAction": {
+      "enum": [
+        "actuate",
+        "open",
+        "close",
+        "check",
+        "startMeasurement",
+        "stopMeasurement",
+        "getMeasurement"
+      ],
+      "type": "string"
+    },
+    "ICarportServiceRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "$ref": "#/definitions/GarageDoorAction"
+        },
+        "garageDoorId": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "garageDoorId",
+        "action"
+      ],
+      "type": "object"
+    }
+  }
+}

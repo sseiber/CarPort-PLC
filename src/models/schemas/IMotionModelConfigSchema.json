@@ -1,0 +1,23 @@
+{
+  "$id": "IMotionModelConfig",
+  "$ref": "#/definitions/IMotionModelConfig",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "IMotionModelConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "jitterSlope": {
+          "type": "number"
+        },
+        "maxSlope": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "maxSlope",
+        "jitterSlope"
+      ],
+      "type": "object"
+    }
+  }
+}

@@ -1,14 +1,15 @@
-import * as fse from 'fs-extra';
-import { resolve } from 'path';
+import { getDirname } from './dirname.js';
+import fse from 'fs-extra';
+import { resolve } from 'node:path';
 
 export function pjson(): any {
     let result = {};
 
     try {
-        const packagePath = resolve(__dirname, '..', '..', 'package.json');
-        result = fse.readJSONSync(packagePath);
+        const packagePath = resolve(getDirname(import.meta.url), '..', '..', 'package.json');
+        result = fse.readJsonSync(packagePath);
     }
-    catch (ex) {
+    catch (_ex) {
         // eat exception
     }
 
