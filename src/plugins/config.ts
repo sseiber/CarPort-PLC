@@ -4,14 +4,13 @@ import {
 } from 'env-schema';
 import {
     FastifyInstance,
-    FastifyPluginCallback,
-    HookHandlerDoneFunction
+    FastifyPluginAsync
 } from 'fastify';
 import fp from 'fastify-plugin';
 import {
     resolve as pathResolve
 } from 'node:path';
-import * as fse from 'fs-extra';
+import fse from 'fs-extra';
 import { getDirname, exMessage } from '../utils/index.js';
 import { IGarageDoorControllerConfig } from '../models/index.js';
 
@@ -22,7 +21,6 @@ interface ICarportPlcEnv {
     LOG_LEVEL: string;
     PORT: string;
     carportPlcStorage: string;
-    configFile: string;
 }
 
 interface ICarportConfig {
@@ -48,25 +46,20 @@ const configSchema: JSONSchemaType<ICarportPlcEnv> = {
         carportPlcStorage: {
             type: 'string',
             default: 'storage'
-        },
-        configFile: {
-            type: 'string',
-            default: ''
         }
     },
     required: [
         'NODE_ENV',
         'LOG_LEVEL',
         'PORT',
-        'carportPlcStorage',
-        'configFile'
+        'carportPlcStorage'
     ]
 };
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface IConfigPluginOptions { }
 
-const configPlugin: FastifyPluginCallback<IConfigPluginOptions> = (server: FastifyInstance, _options: IConfigPluginOptions, done: HookHandlerDoneFunction): void => {
+const configPlugin: FastifyPluginAsync<IConfigPluginOptions> = async (server: FastifyInstance, _options: IConfigPluginOptions): Promise<void> => {
     server.log.info({ tags: [PluginName] }, `Registering...`);
 
     try {
@@ -80,15 +73,15 @@ const configPlugin: FastifyPluginCallback<IConfigPluginOptions> = (server: Fasti
 
         for (const key of Object.keys(envConfig)) {
             if (!envConfig[key]) {
-                return done(new Error(`envConfig missing required value for: ${key}`));
+                return Promise.reject(new Error(`envConfig missing required value for: ${key}`));
             }
         }
 
         const storageRoot = envConfig.carportPlcStorage
-            ? pathResolve(__dirname, '..', envConfig.carportPlcStorage)
+            ? pathResolve(getDirname(import.meta.url), '..', '..', envConfig.carportPlcStorage)
             : '/rpi-gd/data';
 
-        const garageDoorControllerConfig: IGarageDoorControllerConfig[] = fse.readJsonSync(pathResolve(storageRoot, 'garageDoorControllerConfig.json')) as IGarageDoorControllerConfig[];
+        const garageDoorControllerConfig: IGarageDoorControllerConfig[] = await fse.readJson(pathResolve(storageRoot, 'garageDoorControllerConfig.json')) as IGarageDoorControllerConfig[];
         if (!Array.isArray(garageDoorControllerConfig)) {
             throw new Error('Error: Invalid Carport garage door configuration detected');
         }
@@ -98,12 +91,12 @@ const configPlugin: FastifyPluginCallback<IConfigPluginOptions> = (server: Fasti
             controllerConfigs: garageDoorControllerConfig
         });
 
-        return done();
+        return Promise.resolve();
     }
     catch (ex) {
         server.log.error({ tags: [PluginName] }, `registering failed: ${exMessage(ex)}`);
 
-        return done(ex as Error);
+        return Promise.reject(ex as Error);
     }
 };
 

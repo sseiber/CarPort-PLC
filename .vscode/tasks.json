@@ -6,9 +6,6 @@
         {
             "label": "build-carport-plc",
             "type": "shell",
-            "options": {
-                "cwd": "${workspaceFolder}/src"
-            },
             "command": "node ${workspaceFolder}/node_modules/.bin/tsc -p .",
             "problemMatcher": [
                 "$tsc"

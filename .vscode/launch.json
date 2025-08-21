@@ -24,10 +24,6 @@
             "smartStep": true,
             "showAsyncStacks": true,
             "sourceMaps": true,
-            "env": {
-                "NODE_ENV": "local",
-                "CARPORT_PLC_STORAGE": "storage"
-            },
             "outFiles": [
                 "${workspaceFolder}/dist/**/*.js"
             ],
