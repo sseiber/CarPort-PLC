@@ -8,7 +8,7 @@
     },
     "main": "dist/index.js",
     "scripts": {
-        "test": "node ./node_modules/jest/bin/jest.js",
+        "test": "echo \"Error: no test specified\" && exit 1",
         "lint": "eslint .",
         "build": "tsc --build --verbose",
         "build:all": "tsc --build --force --verbose",
