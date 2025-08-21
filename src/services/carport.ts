@@ -13,8 +13,8 @@ import {
     IServiceResponse
 } from '../models/index.js';
 import { exMessage } from '../utils/index.js';
-import { PluginName as ConfigPluginName } from '../plugins/config.js';
 import { GarageDoorController } from './garageDoorController.js';
+import { PluginName as ConfigPluginName } from '../plugins/config.js';
 
 export const ServiceName = 'carportService';
 
