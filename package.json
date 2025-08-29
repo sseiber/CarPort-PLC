@@ -15,8 +15,8 @@
         "build:schemas": "rm -f ./src/models/schemas/*.* && node ./.scripts/buildTypeSchemas.cjs --types-file ../src/models/carportTypes.ts",
         "clean": "tsc --build --clean && npm run clean:all",
         "clean:all": "./.scripts/clean-all.sh",
-        "dockerbuild": "npm run build && node ./.scripts/dockerBuild.js -b -r .",
-        "dockerpush": "node ./.scripts/dockerBuild.js -p -r .",
+        "dockerbuild": "npm run build && node ./.scripts/dockerBuild.cjs -b -r .",
+        "dockerpush": "node ./.scripts/dockerBuild.cjs -p -r .",
         "preversion": "npm test",
         "version": "npm run dockerbuild",
         "postversion": "npm run dockerpush"
