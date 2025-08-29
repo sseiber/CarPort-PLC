@@ -43,6 +43,8 @@ const ServiceName = 'GarageDoorController';
 
 export class GarageDoorController {
     public static createGarageDoorController(server: FastifyInstance, garageDoorId: number, garageDoorControllerConfig: IGarageDoorControllerConfig): GarageDoorController {
+        server.log.info({ tags: [ServiceName] }, `Initializing garage door id:${garageDoorId}`);
+
         const bcm2835 = new Chip(0);
         if (!bcm2835) {
             throw new Error('Failed to initialize BCM2835');
@@ -124,11 +126,10 @@ export class GarageDoorController {
     }
 
     public async init(): Promise<void> {
-        this.server.log.info({ tags: [ServiceName] }, `${this.garageDoorId} initialization gpio ${this.bcm2835.name} - libgpiod version: ${gpioVersion}`);
+        this.server.log.info({ tags: [ServiceName] }, `Initializing garage controller ${this.garageDoorId}`);
+        this.server.log.info({ tags: [ServiceName] }, `Initializing gpio ${this.bcm2835.name} - libgpiod version: ${gpioVersion}`);
 
         try {
-            this.server.log.info({ tags: [ServiceName] }, `${this.garageDoorId} Initializing garage controller GPIO pins`);
-
             this.actuator.requestOutputMode();
 
             this.downState.requestInputMode();
@@ -380,6 +381,7 @@ export class GarageDoorController {
             objectMode: true,
             highWaterMark: 1000
         }));
+
         if (!this.tfLunaResponseParser) {
             throw new Error('Failed to create TFLunaResponseParser');
         }

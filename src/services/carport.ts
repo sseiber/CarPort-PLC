@@ -1,7 +1,6 @@
 import {
     FastifyInstance,
-    FastifyPluginCallback,
-    HookHandlerDoneFunction
+    FastifyPluginAsync
 } from 'fastify';
 import fp from 'fastify-plugin';
 import {
@@ -21,41 +20,58 @@ export const ServiceName = 'carportService';
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface ICarportServicePluginOptions { }
 
-const carportServicePlugin: FastifyPluginCallback<ICarportServicePluginOptions> = (server: FastifyInstance, _options: ICarportServicePluginOptions, done: HookHandlerDoneFunction): void => {
+const carportServicePlugin: FastifyPluginAsync<ICarportServicePluginOptions> = async (server: FastifyInstance, _options: ICarportServicePluginOptions): Promise<void> => {
     server.log.info({ tags: [ServiceName] }, `Registering...`);
 
     try {
-        const carportService = new CarportService(server);
+        const carportService = await CarportService.createCarportService(server);
 
         server.decorate(ServiceName, carportService);
     }
     catch (ex) {
         server.log.error({ tags: [ServiceName] }, `registering failed: ${exMessage(ex)}`);
 
-        return done(ex as Error);
+        throw ex;
     }
-
-    return done();
 };
 
 class CarportService {
+    public static async createCarportService(server: FastifyInstance): Promise<CarportService> {
+        server.log.info({ tags: [ServiceName] }, `initializeGarageDoorControllers`);
+
+        const garageDoorControllers: GarageDoorController[] = [];
+
+        try {
+            const garageDoorControllerConfigs = server.config.controllerConfigs;
+
+            server.log.info({ tags: [ServiceName] }, `Garage controller configuration:\n${JSON.stringify(garageDoorControllerConfigs)}\n`);
+
+            server.log.info({ tags: [ServiceName] }, `Creating garage controllers`);
+
+            let garageDoorId = GarageDoorId1;
+            for (const garageDoorControllerConfig of garageDoorControllerConfigs) {
+                const garageDoorController = GarageDoorController.createGarageDoorController(server, garageDoorId++, garageDoorControllerConfig);
+
+                await garageDoorController.init();
+
+                garageDoorControllers.push(garageDoorController);
+            }
+
+            return new CarportService(server, garageDoorControllers);
+        }
+        catch (ex) {
+            server.log.error({ tags: [ServiceName] }, `An error occurred in initializeGarageDoorControllers: ${exMessage(ex)}`);
+
+            throw ex;
+        }
+    }
+
     private server: FastifyInstance;
     private garageDoorControllers: GarageDoorController[];
 
-    constructor(server: FastifyInstance) {
+    constructor(server: FastifyInstance, garageDoorControllers: GarageDoorController[]) {
         this.server = server;
-        this.garageDoorControllers = [];
-    }
-
-    public async init(): Promise<void> {
-        this.server.log.info({ tags: [ServiceName] }, `CarportService initialzation`);
-
-        try {
-            this.garageDoorControllers = await this.initializeGarageDoorControllers();
-        }
-        catch (ex) {
-            this.server.log.error({ tags: [ServiceName] }, `An error occurred initializing the garage door controller: ${exMessage(ex)}`);
-        }
+        this.garageDoorControllers = garageDoorControllers;
     }
 
     public observe(observeRequest: IObserveRequest): IServiceResponse {
@@ -77,6 +93,7 @@ class CarportService {
         }
         catch (ex) {
             response.succeeded = false;
+            response.statusCode = 500;
             response.message = `Carport request for garageDoorId ${observeRequest.garageDoorId} failed with exception: ${exMessage(ex)}`;
 
             this.server.log.error({ tags: [ServiceName] }, response.message);
@@ -153,34 +170,6 @@ class CarportService {
         }
 
         return response;
-    }
-
-    private async initializeGarageDoorControllers(): Promise<GarageDoorController[]> {
-        this.server.log.info({ tags: [ServiceName] }, `initializeGarageDoorControllers`);
-
-        const garageDoorControllers: GarageDoorController[] = [];
-
-        try {
-            const garageDoorControllerConfigs = this.server.config.controllerConfigs;
-
-            this.server.log.info({ tags: [ServiceName] }, `Garage controller configuration:\n${JSON.stringify(garageDoorControllerConfigs)}\n`);
-
-            this.server.log.info({ tags: [ServiceName] }, `Creating garage controllers`);
-
-            let garageDoorId = GarageDoorId1;
-            for (const garageDoorControllerConfig of garageDoorControllerConfigs) {
-                const garageDoorController = GarageDoorController.createGarageDoorController(this.server, garageDoorId++, garageDoorControllerConfig);
-
-                await garageDoorController.init();
-
-                garageDoorControllers.push(garageDoorController);
-            }
-        }
-        catch (ex) {
-            this.server.log.error({ tags: [ServiceName] }, `An error occurred in initializeGarageDoorControllers: ${exMessage(ex)}`);
-        }
-
-        return garageDoorControllers;
     }
 }
 

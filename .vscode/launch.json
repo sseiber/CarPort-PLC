@@ -15,6 +15,19 @@
             "type": "node"
         },
         {
+            "name": "Debug dockerBuild.cjs",
+            "request": "launch",
+            "runtimeArgs": [
+                "run-script",
+                "dockerBuild"
+            ],
+            "runtimeExecutable": "npm",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node"
+        },
+        {
             "name": "Carport PLC",
             "type": "node",
             "request": "launch",
@@ -24,6 +37,9 @@
             "smartStep": true,
             "showAsyncStacks": true,
             "sourceMaps": true,
+            "env": {
+                "NODE_ENV": "development"
+            },
             "outFiles": [
                 "${workspaceFolder}/dist/**/*.js"
             ],

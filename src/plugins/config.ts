@@ -17,7 +17,6 @@ import { IGarageDoorControllerConfig } from '../models/index.js';
 export const PluginName = 'config';
 
 interface ICarportPlcEnv {
-    NODE_ENV: string;
     LOG_LEVEL: string;
     PORT: string;
     carportPlcStorage: string;
@@ -31,13 +30,9 @@ interface ICarportConfig {
 const configSchema: JSONSchemaType<ICarportPlcEnv> = {
     type: 'object',
     properties: {
-        NODE_ENV: {
-            type: 'string',
-            default: 'development'
-        },
         LOG_LEVEL: {
             type: 'string',
-            default: 'info'
+            default: 'debug'
         },
         PORT: {
             type: 'string',
@@ -45,11 +40,10 @@ const configSchema: JSONSchemaType<ICarportPlcEnv> = {
         },
         carportPlcStorage: {
             type: 'string',
-            default: 'storage'
+            default: '/rpi-gd/data'
         }
     },
     required: [
-        'NODE_ENV',
         'LOG_LEVEL',
         'PORT',
         'carportPlcStorage'
@@ -67,7 +61,7 @@ const configPlugin: FastifyPluginAsync<IConfigPluginOptions> = async (server: Fa
             schema: configSchema,
             data: process.env,
             dotenv: {
-                path: pathResolve(getDirname(import.meta.url), `../configs/${process.env.NODE_ENV}.env`)
+                path: pathResolve(getDirname(import.meta.url), `../../configs/${process.env.NODE_ENV}.env`)
             }
         });
 
@@ -77,11 +71,7 @@ const configPlugin: FastifyPluginAsync<IConfigPluginOptions> = async (server: Fa
             }
         }
 
-        const storageRoot = envConfig.carportPlcStorage
-            ? pathResolve(getDirname(import.meta.url), '..', '..', envConfig.carportPlcStorage)
-            : '/rpi-gd/data';
-
-        const garageDoorControllerConfig: IGarageDoorControllerConfig[] = await fse.readJson(pathResolve(storageRoot, 'garageDoorControllerConfig.json')) as IGarageDoorControllerConfig[];
+        const garageDoorControllerConfig: IGarageDoorControllerConfig[] = await fse.readJson(pathResolve(envConfig.carportPlcStorage, 'garageDoorControllerConfig.json')) as IGarageDoorControllerConfig[];
         if (!Array.isArray(garageDoorControllerConfig)) {
             throw new Error('Error: Invalid Carport garage door configuration detected');
         }
@@ -90,8 +80,6 @@ const configPlugin: FastifyPluginAsync<IConfigPluginOptions> = async (server: Fa
             env: envConfig,
             controllerConfigs: garageDoorControllerConfig
         });
-
-        return Promise.resolve();
     }
     catch (ex) {
         server.log.error({ tags: [PluginName] }, `registering failed: ${exMessage(ex)}`);
