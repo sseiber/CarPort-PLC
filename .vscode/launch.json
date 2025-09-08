@@ -17,15 +17,15 @@
         {
             "name": "Debug dockerBuild.cjs",
             "request": "launch",
+            "type": "node",
             "runtimeArgs": [
                 "run-script",
-                "dockerBuild"
+                "dockerbuild"
             ],
             "runtimeExecutable": "npm",
             "skipFiles": [
                 "<node_internals>/**"
-            ],
-            "type": "node"
+            ]
         },
         {
             "name": "Carport PLC",

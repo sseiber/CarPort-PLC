@@ -7,7 +7,7 @@ spec:
   - http:
       paths:
       - pathType: Prefix
-        path: /api/v1/process/
+        path: /api/v1/control/
         backend:
           service:
             name: carport-server-service

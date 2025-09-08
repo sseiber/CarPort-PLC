@@ -1,19 +1,21 @@
-version: '3.8'
+version: "3.8"
 
 services:
-  rpi-plc:
+  carport-service:
     build:
       context: .
       dockerfile: docker/Dockerfile.rpi4
       platforms:
         - linux/arm64/v8
-    image: rpi-plc:latest
-    container_name: rpi-plc-service
+    image: carport-service:latest
+    container_name: carport-service
     restart: unless-stopped
-    privileged: true  # Required for GPIO access
+    privileged: true # Required for GPIO access
     devices:
-      - /dev/gpiochip0:/dev/gpiochip0  # GPIO chip device
-      - /dev/ttyAMA0:/dev/ttyAMA0      # Serial port for TF-Luna
+      - /dev/gpiochip0:/dev/gpiochip0 # GPIO chip device
+      - /dev/ttyAMA0:/dev/ttyAMA0 # Serial port for TF-Luna1
+      - /dev/ttyAMA0:/dev/ttyAMA1 # Serial port for TF-Luna2
+      - /dev/ttyAMA0:/dev/ttyAMA2 # Serial port for TF-Luna3
     volumes:
       - ./configs:/app/configs:ro
       - plc-data:/rpi-gd/data

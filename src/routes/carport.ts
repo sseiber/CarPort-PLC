@@ -57,7 +57,7 @@ const carportRouterPlugin: FastifyPluginAsync<ICarportRouterOptions> = async (se
 
             serverRoute.route<{ Body: ICarportServiceRequest; Reply: IServiceReply }>({
                 method: 'POST',
-                url: '/process/control',
+                url: '/control',
                 schema: {
                     body: ICarportServiceRequestSchema,
                     response: {
